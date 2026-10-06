@@ -61,7 +61,7 @@ Sources: [about CLI plugins](https://docs.github.com/en/copilot/concepts/agents/
 
 ## Instructions & MCP
 - Coding agent reads `AGENTS.md` (root + nested), `.github/copilot-instructions.md`,
-  `.github/instructions/**.instructions.md`, and `CLAUDE.md`/`GEMINI.md` if present (this harness writes only AGENTS.md).
+  `.github/instructions/**.instructions.md`. This harness writes only AGENTS.md.
 - Prompt files: `.github/prompts/*.prompt.md` (VS Code Copilot Chat).
 - MCP: VS Code `.vscode/mcp.json`; plugins bundle `.mcp.json`; enterprise can force-enable.
 

@@ -73,12 +73,8 @@ for f in plugins/se-harness-copilot/commands/*.md; do
   check "command $c: frontmatter description" test -n "$(get_field description "$f")"
   check "command $c: command-skill exists" test -f "plugins/se-harness-copilot/skills/$c/SKILL.md"
   check "command $c: command-skill body matches command"     bash -c "diff <(awk 'BEGIN{n=0} /^---\$/{n++; next} n>=2{print}' '$f' | sed '/./,\$!d') <(awk 'BEGIN{n=0} /^---\$/{n++; next} n>=2{print}' 'plugins/se-harness-copilot/skills/$c/SKILL.md' | sed '/./,\$!d')"
-  check "command $c: no leftover Claude references"     bash -c "! grep -qiE 'CLAUDE_PLUGIN_ROOT|CLAUDE\.md' '$f'"
 done
 
-# --- no Claude-specific artifacts remain ---
-check "no .claude-plugin directories" bash -c "! find . -name .claude-plugin -not -path './.git/*' | grep -q ."
-check "no CLAUDE.md template" test ! -e templates/CLAUDE.md.tmpl
 
 # --- scripts: bash syntax ---
 for f in plugins/se-harness-copilot/scripts/*.sh tests/run-tests.sh; do

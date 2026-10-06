@@ -104,7 +104,6 @@ two-app loan product with a ready-made `workspace.yaml`; walkthrough in
   verified schema notes in [`docs/copilot/`](./docs/copilot)
 - **[Demo walkthroughs](./docs/demo/README.md)**
 - **[Workspace-orchestration plan](./docs/workspace-orchestration-plan.md)**
-- [Historical design notes](./docs/history) from when the project also targeted Claude Code
 
 ## Repo layout
 

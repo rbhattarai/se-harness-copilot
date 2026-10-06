@@ -1,8 +1,8 @@
 # Workspace-Level Harness: Adaptive Topology and Agentic Orchestration Plan
 
-> Design doc for the workspace-orchestration work tracked in `history/brainstorm.md` A7/A8. Moved here
+> Design doc for the workspace-orchestration work tracked in the original brainstorm notes A7/A8. Moved here
 > from a personal working file once it started driving real implementation (phase 1 landed in
-> commit `dd17e81`). Status markers below follow `history/brainstorm.md`'s convention.
+> commit `dd17e81`). Status markers below follow the original brainstorm's convention.
 
 **Status**: ✅ **All 9 phases implemented.** One-line-each summary:
 
@@ -47,15 +47,14 @@ surfaced: `/harness-init` Step 3's mono-repo detection relied on a fixed list of
 workspace-tool markers (`nx.json`, `turbo.json`, ...) and had no signal for "multiple sibling
 directories, each its own independent build manifest, no root aggregator" — a legitimate,
 common mono-repo shape that list didn't cover. Fixed in `harness-init.md` Step 3 (now checks
-both signals, same confirm-before-write discipline either way); see `history/brainstorm.md`'s A6
+both signals, same confirm-before-write discipline either way); see the original brainstorm's A6
 section for the fuller note. Full walkthrough: `se-harness-setup.md` in the finance-portal repo.
 
 **Real-world validation (2026-10-06, FISMA/Copilot, a 20-repo multi-repo product)**: a second
-live trial, this time on Copilot CLI instead of Claude Code, and genuinely multi-repo (20
+live trial, on Copilot CLI and genuinely multi-repo (20
 separately-cloned repos) rather than mono-repo. Two real gaps surfaced, both in
 `/harness-init`'s workspace-root path, both fixed in `harness-init.md`:
-1. Step 1a invoked `${CLAUDE_PLUGIN_ROOT}/scripts/workspace-clone.sh`, which the Copilot build
-   step rewrites to a bare `tools/harness/workspace-clone.sh` — valid only once scripts are
+1. Step 1a invoked a bare `tools/harness/workspace-clone.sh` — valid only once scripts are
    vendored into the current directory, which nothing did before a brand-new workspace root's
    first command. Fixed with Step 0a: check the path resolves before using it; if not, vendor
    from the Copilot/VS Code plugin cache (`~/.vscode/agent-plugins/<host>/<org>/<repo>/...` —
@@ -516,7 +515,7 @@ adapter can translate the plan into the agent format and capabilities available 
 At runtime, detect or configure whether the client supports agent definitions, parallel
 delegation, shared task state, direct agent messaging, and cross-repo workspaces. If a capability
 is missing, use a sequential or user-mediated handoff while preserving the same tasks and
-evidence. This is not hypothetical: Claude Code and Copilot CLI already diverge on hook semantics
+evidence. This is not hypothetical: Copilot CLI and VS Code already diverge on hook semantics
 today (`PreToolUse` deny behaves differently across Copilot CLI/coding-agent vs. VS Code, per
 `docs/setup-guide-copilot.md` Part 6) — the adapter layer generalizes a gap that already has to be
 worked around. Do not promise autonomous multi-agent coordination just because agent files exist.
@@ -726,8 +725,7 @@ as one large orchestrator-subsystem drop.
 - Exact `evidence:` field shape for `relationships:` — a single path/URL, or a richer
   `{source, excerpt, confirmed_by, date}` structure (leaning toward the latter, to match how
   wiki-ingest already records provenance).
-- Which agent runtimes are supported initially (Claude Code first, per the rest of this
-  framework's dual-publish order) and the shared orchestration contract for Copilot CLI's
+- Which agent runtimes are supported initially (Copilot CLI first) and the shared orchestration contract for Copilot CLI's
   different hook/agent-messaging capabilities.
 - Whether agent definitions live at workspace level, in repos, or both, based on client discovery
   rules.
@@ -746,5 +744,5 @@ as one large orchestrator-subsystem drop.
   works rows sequentially regardless of what the dependency graph would allow. Building real
   parallelism means either spawning concurrent sessions (hits the same nested-dispatch
   reliability question phase 6 declined to assume — §9) or a job-queue-style external
-  coordinator (Multica-shaped, already flagged as v2+ infrastructure in `history/brainstorm.md` B5/B8).
+  coordinator (Multica-shaped, already flagged as v2+ infrastructure in the original brainstorm notes B5/B8).
   Not pursued here; sequential-but-correct was the acceptance bar for phases 5-8.

@@ -64,7 +64,7 @@ hooks. The remaining gaps are surface-specific (VS Code Chat), not wholesale:
 | Commands (`/harness-init`, `/harness-goal`, …) | ✅ Ship in the **Copilot CLI plugin** (4.2); also usable as prompt files (`.github/prompts/*.prompt.md`) in VS Code Chat (4.3) |
 | Skills (stack-detector, requirement-grill, memory-keeper, wiki-*) | ✅ Same SKILL.md standard — bundled in the CLI plugin (4.2) |
 | Shell scripts (scan, splice, REQ scaffolding, worktrees, contract-check) | ✅ Run in Git Bash — by you or by Copilot agent mode's terminal |
-| Enforcement hooks (HITL gate, org-rules validation, memory auto-log, contract-check) | ✅ All surfaces: bundled in the CLI plugin (4.2), repo-level `.github/hooks/*.json` for the coding agent (4.7), and **VS Code loads `.github/hooks/*.json` too** (Claude-style semantics). Actions + branch protection remain the human-binding backstop (Part 6) |
+| Enforcement hooks (HITL gate, org-rules validation, memory auto-log, contract-check) | ✅ All surfaces: bundled in the CLI plugin (4.2), repo-level `.github/hooks/*.json` for the coding agent (4.7), and **VS Code loads `.github/hooks/*.json` too**. Actions + branch protection remain the human-binding backstop (Part 6) |
 | MCP servers (Atlassian/Jira, GitHub) | ✅ Portable — VS Code Copilot supports MCP via `.vscode/mcp.json` |
 | `.harness/` artifacts (profile, requirements, memory) | ✅ Plain committed files — tool-agnostic |
 
