@@ -1,0 +1,20 @@
+{
+  "name": "se-harness-copilot",
+  "owner": {
+    "name": "Rohan Bhattarai",
+    "email": "rohan.bhattarai.dev@gmail.com"
+  },
+  "metadata": {
+    "description": "SE Harness marketplace for GitHub Copilot — AI-agentic SDLC harness for any project.",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "se-harness-copilot",
+      "source": "./plugins/se-harness-copilot",
+      "description": "GitHub Copilot plugin: SDLC agent roster, harness skills, goal-loop commands, bundled enforcement hooks (HITL gates), three-tier memory.",
+      "category": "workflow",
+      "keywords": ["sdlc", "agents", "harness", "hitl", "memory", "copilot"]
+    }
+  ]
+}

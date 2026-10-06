@@ -1,0 +1,13 @@
+{
+  "name": "se-harness-copilot",
+  "description": "SE Harness for GitHub Copilot CLI: SDLC agent roster, harness skills, goal-loop commands, and bundled enforcement hooks. Repo-level hooks for the coding agent/VS Code - see docs/setup-guide-copilot.md.",
+  "version": "1.0.0",
+  "author": { "name": "Rohan Bhattarai", "email": "rohan.bhattarai.dev@gmail.com" },
+  "repository": "https://github.com/rohanbhattaraidev-beep/se-harness-copilot",
+  "license": "MIT",
+  "keywords": ["sdlc", "agents", "harness", "bootstrap", "hitl", "memory"],
+  "agents": "./agents",
+  "skills": "./skills",
+  "commands": "./commands",
+  "hooks": "./hooks.json"
+}
