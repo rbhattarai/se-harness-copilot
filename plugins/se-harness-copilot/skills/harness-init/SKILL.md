@@ -221,7 +221,9 @@ Ask only what wasn't detected and isn't already inherited. Cover:
 3. **DevOps + cloud**: CI system, container approach (default docker-compose), cloud target
    (aws / azure / gcp / vercel / none-yet).
 4. **Non-code sources** (workspace-scoped by default): Jira project key, Confluence space keys,
-   SharePoint sites (each optional — record "" when not used).
+   SharePoint sites, NAS document paths, NAS video paths (each optional — record ""/`[]` when
+   not used). Recording a path here doesn't ingest anything — `/harness-mem-wiki` is what
+   actually reads and synthesizes these sources, later, on its own schedule.
 
 ## Step 5 — Organization context (required before AGENTS.md is finalized)
 

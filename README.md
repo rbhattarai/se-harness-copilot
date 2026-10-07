@@ -96,6 +96,7 @@ two-app loan product with a ready-made `workspace.yaml`; walkthrough in
 | `harness-sync` | Four-axis drift detection → diff-first report → confirmed refresh of generated blocks |
 | `harness-export` | Vendor agents + hooks into `.github/` for the coding agent |
 | `harness-methodology-openspec` | Install/init OpenSpec where chosen; `harness-goal` drives its propose/archive lifecycle |
+| `harness-mem-wiki` | Synthesize Jira/Confluence/SharePoint/NAS sources into the workspace-level domain wiki |
 | `harness-mem-graphify` | Build/maintain Graphify structural-memory indexes — per-repo, and merged at workspace level |
 
 ## Documentation
@@ -115,7 +116,7 @@ plugins/se-harness-copilot/          # the plugin (source of truth)
   plugin.json  hooks.json
   agents/                            # 12-agent SDLC roster (*.agent.md)
   skills/                            # harness skills + each harness-* command as a skill
-  commands/                          # the eight harness-* commands
+  commands/                          # the nine harness-* commands
   scripts/                           # gate-check, org-validate, memory-log, contract-check,
                                      # copilot-hook-adapter, workspace-*, render-block, ...
 registry/recommendations.json        # profile → plugin mappings (recommender data)
