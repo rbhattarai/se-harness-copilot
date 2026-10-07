@@ -35,9 +35,11 @@ run `/harness-init` first and stop.
 
 ## Step 1 — Build the recommendation manifest
 Read `.harness/profile.yaml` (guard: must exist — run `/harness-init` first) and
-`../se-harness/registry/recommendations.json`. Map profile → components:
+`../se-harness-copilot/registry/recommendations.json`. Map profile → components:
 
-- `methodology` → its entry (plugin or CLI install)
+- `methodology` → its entry (plugin or CLI install) — `se-harness` ("se-harness (built-in)" to
+  the user) has a `kind: native` registry entry, nothing to install; skip it silently, no
+  manifest row
 - each `stack.*` value → its `plugins` list (skip entries with empty lists; surface their
   `note` so the user knows why nothing is recommended)
 - `cloud` → its plugins
@@ -65,9 +67,9 @@ core / observability / memory). Default-recommend the `always` group; everything
 ## Step 3 — Install (only selected items)
 For each selected component, by `kind`:
 - **plugin**: try the CLI first —
-  `claude plugin marketplace add <marketplace>` (third-party only) then
-  `claude plugin install <plugin>`. If the `claude` CLI is unavailable in this environment,
-  print the exact `/plugin` commands for the user to run interactively and mark the item
+  `copilot plugin marketplace add <marketplace>` (third-party only) then
+  `copilot plugin install <plugin>@<marketplace>`. If the `copilot` CLI is unavailable in this
+  environment, print the exact commands for the user to run interactively and mark the item
   `pending-manual` in the lockfile.
 - **cli**: run the registry's `install` command verbatim (confirm with the user first — it
   executes third-party code). **Exception: the Graphify component.** Don't run its bare
@@ -75,7 +77,10 @@ For each selected component, by `kind`:
   first, same as any third-party install). It owns the fuller gated sequence this step doesn't
   (Python/uv prerequisite checks, an org's private package index from
   `shared.package_index` if set, the first index build, and the lockfile record) — running
-  the bare command here would both duplicate and undercut it.
+  the bare command here would both duplicate and undercut it. **Exception: the OpenSpec
+  component.** Same reasoning — hand off to `/harness-methodology-openspec` instead of the bare
+  `npm install -g` command; it owns the gated install-plus-`openspec init` sequence and the
+  lockfile record, and it's what `/harness-goal` later expects to find already set up.
 - **mcp**: render the needed entries from `templates/mcp.json.tmpl` into the project's
   `.mcp.json` (merge — never clobber existing servers; secrets stay `${VAR}` references
   to `.env.harness`).
@@ -83,21 +88,20 @@ For each selected component, by `kind`:
 ## Step 4 — Wire the harness pieces
 1. Confirm the se-harness **agents roster** is active (ships with this plugin — architect,
    story-writer, implementers, db-engineer, unit/integration testers, e2e planner/generator/
-   healer, release-manager). Offer to copy any of them into `.claude/agents/` **only if** the
+   healer, release-manager). Offer to copy any of them into `.github/agents/` **only if** the
    user wants project-specific tuning (copied agents override plugin versions and stop
    receiving updates — say so).
 2. Project-specific quality gates beyond the built-ins (gate-check, org-validate): point the
    user at the `hookify` plugin for authoring extra rules as hooks.
 3. **Graphify selected and installed this run**: offer to wire
-   `tools/harness/graphify-update-hook.sh` as a PostToolUse(Bash) hook for this
-   repo, the same way this surface registers its other project-level hooks. It only runs the
-   cheap incremental `graphify update . --no-cluster` after a commit, in the background, and
-   no-ops instantly for any repo that didn't choose Graphify — it's opt-in per repo
-   (ECC "composable" doctrine), never bundled into the plugin's own global hooks.json.
+   `tools/harness/graphify-update-hook.sh` as a postToolUse hook for this repo (e.g. in
+   `.github/hooks/`). It only runs the cheap incremental `graphify update . --no-cluster`
+   after a commit, in the background, and no-ops instantly for any repo that didn't choose
+   Graphify — it's opt-in per repo, never bundled into the plugin's own global hooks.json.
    Mention plainly that it can't cover the workspace-level merge (a hook only sees the repo its
    session is in) — `/harness-mem-graphify`'s own "Keeping this fresh automatically" section
    covers that gap and what to do about it.
-4. Re-render AGENTS.md/CLAUDE.md blocks via
+4. Re-render AGENTS.md blocks via
    `bash tools/harness/render-block.sh <target> <block-file>` so the generated
    block reflects what's now installed.
 

@@ -65,7 +65,7 @@ that in one line and stop — no ceremony, no empty tables.
 2. Org changes → regenerate `.harness/org-rules.txt`.
 3. Component installs/removals → same mechanics as `/harness-bootstrap` Step 3 (CLI with
    `pending-manual` fallback; confirm before running any third-party CLI install).
-4. Re-render AGENTS.md/CLAUDE.md inner blocks from the updated profile and splice:
+4. Re-render AGENTS.md inner blocks from the updated profile and splice:
    `bash tools/harness/render-block.sh <target> <block-file>` — also when only
    template drift (axis C) triggered it.
 5. `.mcp.json`: merge any new server entries; never remove servers the user added by hand.

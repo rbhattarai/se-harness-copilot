@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# copilot-hook-adapter.sh — run a Claude-style se-harness hook script under GitHub Copilot
+# copilot-hook-adapter.sh — run an exit-code-style se-harness hook script under GitHub Copilot
 # hooks (.github/hooks/*.json), translating the semantics that differ:
 #
-#   Claude Code:   exit 2 = block (PreToolUse) / surface feedback (PostToolUse), stderr → agent
+#   Script contract: exit 2 = block (PreToolUse) / surface feedback (PostToolUse), stderr → agent
 #   Copilot:       preToolUse deny = JSON {"hookSpecificOutput":{"permissionDecision":"deny",...}}
 #                  + exit 0;  exit 2 does NOT block;  other non-zero exits fail-closed (deny);
 #                  timeouts fail-open.   (docs.github.com/en/copilot/reference/hooks-reference)
@@ -25,7 +25,7 @@ OUT=$(printf '%s' "$INPUT" | bash "$SCRIPT" "$@" 2>&1)
 CODE=$?
 
 if [ "$MODE" = "pre" ] && [ "$CODE" -eq 2 ]; then
-  # Claude-style block → Copilot explicit deny (JSON on stdout, exit 0).
+  # Script-style block → Copilot explicit deny (JSON on stdout, exit 0).
   REASON=$(printf '%s' "$OUT" | tr '\n' ' ' | sed 's/\\/\\\\/g; s/"/\\"/g' | cut -c1-500)
   printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"%s"}}\n' "$REASON"
   exit 0

@@ -44,14 +44,17 @@ workspace:
                               #   AND is also part of a multi-repo product — both halves apply
   layout: domain             # layered | domain
 
-  shared:                    # inherited by every unit's generated AGENTS.md/CLAUDE.md
+  shared:                    # inherited by every unit's generated AGENTS.md
     # Scoped-configuration defaults (workspace-orchestration plan §3.2, phase 3): methodology,
     # org context, and non-code sources default to this workspace scope — /harness-init reads
     # these first and only asks when a value here is still empty, then offers to write its
     # answer back here so every other unit inherits it too. A unit MAY deviate (e.g. a
     # different methodology) — that's a documented exception, recorded as a comment next to
     # the field in that unit's own .harness/profile.yaml, not a silent divergence.
-    methodology: ""          # bmad | spec-kit | openspec — workspace-wide default
+    methodology: ""          # bmad | spec-kit | openspec | se-harness — workspace-wide
+                              # default. "se-harness" displays as "se-harness (built-in)" —
+                              # only it and openspec are actually delegated to by /harness-goal
+                              # today (see profile.yaml's comment).
     org: {}                  # same shape as profile.yaml org: — conventions, internal libs
     # package_index:            OPTIONAL, additive to org: — set only if this org requires
     #   url: ""                 installs (uv/pip) to come from a private index rather than

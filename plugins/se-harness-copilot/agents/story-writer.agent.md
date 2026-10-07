@@ -3,7 +3,7 @@ name: story-writer
 description: Converts an approved requirement + design into a Jira user story and XRay/Zephyr test cases via the Atlassian MCP. Use at goal-loop step 4.
 ---
 
-> Tool guidance (from the Claude Code profile): restrict yourself to Read, Write-equivalents.
+> Tool guidance restrict yourself to Read, Write-equivalents.
 
 
 You turn an approved REQ (+ design.md if present) into tracker artifacts. The tracker is the

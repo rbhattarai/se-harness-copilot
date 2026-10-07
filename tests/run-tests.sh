@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # run-tests.sh — repo test suite: manifest integrity, version lockstep, plugin structure,
-# generated-variant completeness, script syntax, and open-source hygiene files.
+# command/skill parity, script syntax, and open-source hygiene files.
 # Runs anywhere bash + python are available (CI: ubuntu-latest; local: Git Bash).
 #
 # usage: bash tests/run-tests.sh
@@ -35,68 +35,49 @@ print(d)" "$1" "$2"; }
 get_field() { awk -v f="$1" '/^---$/{n++; next} n==1 && $0 ~ "^"f": " {sub("^"f": ",""); print; exit}' "$2"; }
 
 # --- manifests: valid JSON ---
-for j in .claude-plugin/marketplace.json .github/plugin/marketplace.json \
-         plugins/se-harness/.claude-plugin/plugin.json plugins/se-harness-copilot/plugin.json \
-         plugins/se-harness-copilot/hooks.json registry/recommendations.json \
-         plugins/se-harness/hooks/hooks.json; do
+for j in .github/plugin/marketplace.json plugins/se-harness-copilot/plugin.json          plugins/se-harness-copilot/hooks.json templates/copilot-hooks.json          registry/recommendations.json; do
   [ -f "$j" ] && check "valid JSON: $j" json_valid "$j"
 done
 
 # --- manifests: required fields ---
 for f in name version description license; do
-  check "se-harness plugin.json has $f" json_field plugins/se-harness/.claude-plugin/plugin.json "$f"
-  check "se-harness-copilot plugin.json has $f" json_field plugins/se-harness-copilot/plugin.json "$f"
+  check "plugin.json has $f" json_field plugins/se-harness-copilot/plugin.json "$f"
 done
-check "marketplace.json has name" json_field .claude-plugin/marketplace.json name
-check "marketplace.json has metadata.version" json_field .claude-plugin/marketplace.json metadata.version
-check "marketplace.json has owner.name" json_field .claude-plugin/marketplace.json owner.name
+check "marketplace.json has name" json_field .github/plugin/marketplace.json name
+check "marketplace.json has metadata.version" json_field .github/plugin/marketplace.json metadata.version
+check "marketplace.json has owner.name" json_field .github/plugin/marketplace.json owner.name
 
-# --- version lockstep: plugin.json == marketplace == build-script heredoc == copilot variant ---
-V_PLUGIN=$(json_field plugins/se-harness/.claude-plugin/plugin.json version 2>/dev/null)
-V_MARKET=$(json_field .claude-plugin/marketplace.json metadata.version 2>/dev/null)
-V_COPILOT=$(json_field plugins/se-harness-copilot/plugin.json version 2>/dev/null)
-V_SCRIPT=$(grep -m1 -oE '"version": "[0-9][0-9a-zA-Z.-]*"' plugins/se-harness/scripts/build-copilot-plugin.sh | grep -oE '[0-9][0-9a-zA-Z.-]*')
+# --- version lockstep: plugin.json == marketplace ---
+V_PLUGIN=$(json_field plugins/se-harness-copilot/plugin.json version 2>/dev/null)
+V_MARKET=$(json_field .github/plugin/marketplace.json metadata.version 2>/dev/null)
 check "version lockstep: plugin.json == marketplace metadata.version" test "$V_PLUGIN" = "$V_MARKET"
-check "version lockstep: plugin.json == build-script heredoc" test "$V_PLUGIN" = "$V_SCRIPT"
-check "version lockstep: plugin.json == generated copilot plugin.json" test "$V_PLUGIN" = "$V_COPILOT"
 
-# --- marketplace mirror is byte-identical to the source of truth ---
-check "mirror .github/plugin/marketplace.json matches .claude-plugin/" \
-  cmp -s .claude-plugin/marketplace.json .github/plugin/marketplace.json
-
-# --- agents: frontmatter contract (build script depends on name/description) ---
-for f in plugins/se-harness/agents/*.md; do
+# --- agents: frontmatter contract ---
+for f in plugins/se-harness-copilot/agents/*.agent.md; do
   b=$(basename "$f")
   check "agent $b: frontmatter name" test -n "$(get_field name "$f")"
   check "agent $b: frontmatter description" test -n "$(get_field description "$f")"
 done
 
-# --- skills: SKILL.md with description, shared verbatim across ecosystems ---
-for d in plugins/se-harness/skills/*/; do
+# --- skills: SKILL.md with name + description ---
+for d in plugins/se-harness-copilot/skills/*/; do
   s=$(basename "$d")
   check "skill $s: SKILL.md exists" test -f "$d/SKILL.md"
   check "skill $s: frontmatter description" test -n "$(get_field description "$d/SKILL.md")"
-  check "skill $s: copied into copilot variant" cmp -s "$d/SKILL.md" "plugins/se-harness-copilot/skills/$s/SKILL.md"
 done
 
-# --- commands: description frontmatter + generated copilot counterparts ---
-for f in plugins/se-harness/commands/*.md; do
+# --- commands: description frontmatter + matching command-skill with identical body ---
+body() { awk 'BEGIN{n=0} /^---$/{n++; next} n>=2{print}' "$1" | sed '/./,$!d'; }
+for f in plugins/se-harness-copilot/commands/*.md; do
   c=$(basename "$f" .md)
   check "command $c: frontmatter description" test -n "$(get_field description "$f")"
-  check "command $c: copilot command generated" test -f "plugins/se-harness-copilot/commands/$c.md"
-  check "command $c: copilot command-skill generated" test -f "plugins/se-harness-copilot/skills/$c/SKILL.md"
-  check "command $c: copilot rewrite left no CLAUDE_PLUGIN_ROOT" \
-    bash -c "! grep -q 'CLAUDE_PLUGIN_ROOT' 'plugins/se-harness-copilot/commands/$c.md'"
+  check "command $c: command-skill exists" test -f "plugins/se-harness-copilot/skills/$c/SKILL.md"
+  check "command $c: command-skill body matches command"     bash -c "diff <(awk 'BEGIN{n=0} /^---\$/{n++; next} n>=2{print}' '$f' | sed '/./,\$!d') <(awk 'BEGIN{n=0} /^---\$/{n++; next} n>=2{print}' 'plugins/se-harness-copilot/skills/$c/SKILL.md' | sed '/./,\$!d')"
 done
 
-# --- generated agents: one .agent.md per source agent ---
-for f in plugins/se-harness/agents/*.md; do
-  n=$(get_field name "$f")
-  check "agent $n: copilot .agent.md generated" test -f "plugins/se-harness-copilot/agents/$n.agent.md"
-done
 
 # --- scripts: bash syntax ---
-for f in plugins/se-harness/scripts/*.sh tests/run-tests.sh; do
+for f in plugins/se-harness-copilot/scripts/*.sh tests/run-tests.sh; do
   check "bash -n: $f" bash -n "$f"
 done
 
@@ -110,7 +91,7 @@ i=0; while [ "$i" -lt 160 ]; do echo "filler $i" >> "$WL_FIX/payments.md"; i=$((
 printf '# Refunds\n' > "$WL_FIX/refunds.md"
 printf '# Lonely\n\nsources: Y, ingested 2026-07-10\n' > "$WL_FIX/lonely.md"
 printf '# Secrets\n\npassword = "hunter2-value"\n\nsources: Z, ingested 2026-07-12\n' > "$WL_FIX/secrets.md"
-bash plugins/se-harness/scripts/wiki-lint.sh "$WL_FIX" > "$WL_OUT" 2>&1
+bash plugins/se-harness-copilot/scripts/wiki-lint.sh "$WL_FIX" > "$WL_OUT" 2>&1
 WL_CODE=$?
 check "wiki-lint exits 1 on findings" test "$WL_CODE" -eq 1
 for tag in MISSING-FROM-INDEX DANGLING-INDEX-LINK ORPHAN NO-SOURCES CONTRADICTION OVERSIZE SECRET-HIT; do
@@ -122,12 +103,12 @@ printf '# Index\n\n- [a](a.md) — x\n- [b](b.md) — x\n' > "$WL_CLEAN/index.md
 printf '# Log\n' > "$WL_CLEAN/log.md"
 printf '# A\n\nSee [[b]].\n\nsources: X, ingested 2026-07-15\n' > "$WL_CLEAN/a.md"
 printf '# B\n\nSee [[a]].\n\nsources: Y, ingested 2026-07-15\n' > "$WL_CLEAN/b.md"
-bash plugins/se-harness/scripts/wiki-lint.sh "$WL_CLEAN" > "$WL_OUT" 2>&1
+bash plugins/se-harness-copilot/scripts/wiki-lint.sh "$WL_CLEAN" > "$WL_OUT" 2>&1
 WL_CODE=$?
 check "wiki-lint exits 0 when clean" test "$WL_CODE" -eq 0
 check "wiki-lint reports clean" grep -q "wiki-lint: clean" "$WL_OUT"
 check "wiki-lint exits 2 on missing dir" \
-  bash -c 'bash plugins/se-harness/scripts/wiki-lint.sh "$0" >/dev/null 2>&1; test $? -eq 2' "$WL_FIX/nope"
+  bash -c 'bash plugins/se-harness-copilot/scripts/wiki-lint.sh "$0" >/dev/null 2>&1; test $? -eq 2' "$WL_FIX/nope"
 rm -rf "$WL_FIX" "$WL_CLEAN" "$WL_OUT"
 
 # --- workspace-validate.sh: additive schema (phase 1 of the workspace-orchestration plan) ---
@@ -147,7 +128,7 @@ contracts:
     consumers: []
 EOF
 check "workspace-validate: today's shape (no schemaVersion) exits 0" \
-  bash plugins/se-harness/scripts/workspace-validate.sh "$WV_FIX/today.yaml"
+  bash plugins/se-harness-copilot/scripts/workspace-validate.sh "$WV_FIX/today.yaml"
 
 # a well-formed additive manifest (schemaVersion + components + relationships) passes clean
 cat > "$WV_FIX/good.yaml" <<'EOF'
@@ -182,9 +163,9 @@ contracts:
     consumers: [storefront-ui]
 EOF
 check "workspace-validate: well-formed additive manifest exits 0" \
-  bash plugins/se-harness/scripts/workspace-validate.sh "$WV_FIX/good.yaml"
+  bash plugins/se-harness-copilot/scripts/workspace-validate.sh "$WV_FIX/good.yaml"
 WV_OUT="$WV_FIX.out"
-bash plugins/se-harness/scripts/workspace-validate.sh "$WV_FIX/good.yaml" > "$WV_OUT" 2>&1
+bash plugins/se-harness-copilot/scripts/workspace-validate.sh "$WV_FIX/good.yaml" > "$WV_OUT" 2>&1
 check "workspace-validate: well-formed additive manifest reports clean" grep -q "clean" "$WV_OUT"
 
 # shared.methodology (phase 3) — checked regardless of schemaVersion
@@ -196,7 +177,7 @@ workspace:
     org: {}
 EOF
 check "workspace-validate: valid shared.methodology, no schemaVersion, exits 0" \
-  bash plugins/se-harness/scripts/workspace-validate.sh "$WV_FIX/method-ok.yaml"
+  bash plugins/se-harness-copilot/scripts/workspace-validate.sh "$WV_FIX/method-ok.yaml"
 
 cat > "$WV_FIX/method-bad.yaml" <<'EOF'
 workspace:
@@ -204,7 +185,7 @@ workspace:
   shared:
     methodology: scrum-of-scrums
 EOF
-bash plugins/se-harness/scripts/workspace-validate.sh "$WV_FIX/method-bad.yaml" > "$WV_OUT" 2>&1
+bash plugins/se-harness-copilot/scripts/workspace-validate.sh "$WV_FIX/method-bad.yaml" > "$WV_OUT" 2>&1
 WV_METHOD_CODE=$?
 check "workspace-validate: invalid shared.methodology exits 2" test "$WV_METHOD_CODE" -eq 2
 check "workspace-validate: invalid shared.methodology is reported" \
@@ -229,7 +210,7 @@ relationships:
     to: unknown-id
     type: not-a-real-type
 EOF
-bash plugins/se-harness/scripts/workspace-validate.sh "$WV_FIX/bad.yaml" > "$WV_OUT" 2>&1
+bash plugins/se-harness-copilot/scripts/workspace-validate.sh "$WV_FIX/bad.yaml" > "$WV_OUT" 2>&1
 WV_CODE=$?
 check "workspace-validate: bad manifest exits 2" test "$WV_CODE" -eq 2
 for msg in "not one of repo|monorepo-package|module" "does not resolve inside any declared unit" \
@@ -237,12 +218,12 @@ for msg in "not one of repo|monorepo-package|module" "does not resolve inside an
   check "workspace-validate reports: $msg" grep -qF "$msg" "$WV_OUT"
 done
 check "workspace-validate: missing file exits 1" \
-  bash -c 'bash plugins/se-harness/scripts/workspace-validate.sh "$0" >/dev/null 2>&1; test $? -eq 1' \
+  bash -c 'bash plugins/se-harness-copilot/scripts/workspace-validate.sh "$0" >/dev/null 2>&1; test $? -eq 1' \
   "$WV_FIX/nope.yaml"
 rm -rf "$WV_FIX" "$WV_OUT"
 
 # --- contract-check.sh keeps working unchanged against a manifest with the additive keys ---
-CC_SCRIPT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/plugins/se-harness/scripts/contract-check.sh"
+CC_SCRIPT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/plugins/se-harness-copilot/scripts/contract-check.sh"
 WVG=$(mktemp -d 2>/dev/null || mktemp -d -t seharness)
 (
   cd "$WVG" && git init -q && git config user.email t@t.co && git config user.name t
@@ -277,7 +258,7 @@ check "contract-check: additive manifest still flags a real contract change" tes
 rm -rf "$WVG"
 
 # --- workspace-clone.sh: opt-in, confirmed, never-overwrite repo acquisition (phase 2) ---
-WC_SCRIPT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/plugins/se-harness/scripts/workspace-clone.sh"
+WC_SCRIPT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/plugins/se-harness-copilot/scripts/workspace-clone.sh"
 WC_FIX=$(mktemp -d 2>/dev/null || mktemp -d -t seharness)
 git init -q --bare "$WC_FIX/remote-a.git" >/dev/null 2>&1
 mkdir -p "$WC_FIX/ws"
@@ -315,7 +296,7 @@ check "workspace-clone: missing inventory file exits 1" \
 rm -rf "$WC_FIX" "$WC_OUT"
 
 # --- gate-check.sh: HITL gate + phase 5's workspace-plan.md row check ---
-GC_SCRIPT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/plugins/se-harness/scripts/gate-check.sh"
+GC_SCRIPT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/plugins/se-harness-copilot/scripts/gate-check.sh"
 GC_FIX=$(mktemp -d 2>/dev/null || mktemp -d -t seharness)
 gc_payload() { printf '{"tool_name":"Bash","tool_input":{"command":"%s"}}' "$1"; }
 
@@ -419,7 +400,7 @@ check "gate-check: missing integration: field defaults to blocked, not an implic
 rm -rf "$GC_FIX" "$GC_OUT"
 
 # --- workspace-scan-evidence.sh: §10, full workspace-root scan collector ---
-WSE_SCRIPT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/plugins/se-harness/scripts/workspace-scan-evidence.sh"
+WSE_SCRIPT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/plugins/se-harness-copilot/scripts/workspace-scan-evidence.sh"
 WSE_FIX=$(mktemp -d 2>/dev/null || mktemp -d -t seharness)
 WSE_OUT="$WSE_FIX.out"
 
@@ -482,7 +463,7 @@ check "no network calls in plugin scripts" \
   bash -c "! grep -rlE 'curl |wget |Invoke-WebRequest|Invoke-RestMethod' plugins/*/scripts/"
 
 # --- open-source hygiene: files exist and license ships with each plugin ---
-for f in LICENSE plugins/se-harness/LICENSE plugins/se-harness-copilot/LICENSE \
+for f in LICENSE plugins/se-harness-copilot/LICENSE \
          PRIVACY.md CONTRIBUTING.md CODE_OF_CONDUCT.md README.md; do
   check "file exists: $f" test -s "$f"
 done

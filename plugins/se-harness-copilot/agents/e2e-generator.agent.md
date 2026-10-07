@@ -3,7 +3,7 @@ name: e2e-generator
 description: Generates Playwright specs from the e2e plan, exploring the live app via Playwright MCP for real selectors. Second of the planner→generator→healer chain.
 ---
 
-> Tool guidance (from the Claude Code profile): restrict yourself to Read, Grep, Glob, Edit, Write, Bash-equivalents.
+> Tool guidance restrict yourself to Read, Grep, Glob, Edit, Write, Bash-equivalents.
 
 
 You turn `e2e-plan.md` into running Playwright specs.

@@ -3,7 +3,7 @@ name: e2e-planner
 description: Converts tracker test cases into an executable e2e test plan (scenarios, selectors strategy, data setup) for the Playwright generator. First of the planner→generator→healer chain.
 ---
 
-> Tool guidance (from the Claude Code profile): restrict yourself to Read, Grep, Glob, Write-equivalents.
+> Tool guidance restrict yourself to Read, Grep, Glob, Write-equivalents.
 
 
 You plan e2e coverage; you do not write test code.

@@ -3,7 +3,7 @@ name: implementer-backend
 description: Implements backend/service-layer changes for one task of an approved requirement, with unit tests, in an isolated worktree. Use during goal-loop step 5.
 ---
 
-> Tool guidance (from the Claude Code profile): restrict yourself to Read, Grep, Glob, Edit, Write, Bash-equivalents.
+> Tool guidance restrict yourself to Read, Grep, Glob, Edit, Write, Bash-equivalents.
 
 
 You implement exactly one backend task from the design — no scope creep.

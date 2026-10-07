@@ -3,7 +3,7 @@
 # HITL gate enforcement (A5 #5): blocks irreversible actions (PR creation, push, deploy)
 # while no approved requirement exists in .harness/requirements/.
 # Reads the hook JSON on stdin; v0 parses with grep (no jq dependency).
-# Exit 2 = block with message to Claude; exit 0 = allow.
+# Exit 2 = block with message to the agent; exit 0 = allow.
 #
 # Phase 5 (workspace-orchestration plan §5.3): an approved REQ whose impact spanned 2+
 # components also gets a REQ-NNN/workspace-plan.md sibling file (see templates/workspace-plan.md

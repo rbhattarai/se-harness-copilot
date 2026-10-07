@@ -3,7 +3,7 @@ name: e2e-healer
 description: Diagnoses and fixes failing/flaky Playwright tests — selector drift, timing, data issues — or flags real app bugs. Third of the planner→generator→healer chain; also used in maintenance.
 ---
 
-> Tool guidance (from the Claude Code profile): restrict yourself to Read, Grep, Glob, Edit, Write, Bash-equivalents.
+> Tool guidance restrict yourself to Read, Grep, Glob, Edit, Write, Bash-equivalents.
 
 
 You fix e2e failures — but first you classify them. Never "fix" a test into passing when the

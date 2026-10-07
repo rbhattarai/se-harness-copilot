@@ -1,5 +1,5 @@
 ---
-description: Scan an existing repo to detect stack, devops, cloud, topology, and org conventions; confirm with the user; merge into the harness profile and regenerate AGENTS.md/CLAUDE.md.
+description: Scan an existing repo to detect stack, devops, cloud, topology, and org conventions; confirm with the user; merge into the harness profile and regenerate AGENTS.md.
 argument-hint: [root-dir]
 ---
 
@@ -113,7 +113,7 @@ to workspace scope. If a workspace manifest exists, compare this repo's current
    success; a validation failure blocks the merge for that file, not the rest of Step 4.
 3. **`.harness/org-rules.txt`** — regenerate from the confirmed `org.preferred_libraries`
    pairs (`banned:<never>:use <use> (<reason>)`).
-4. **AGENTS.md / CLAUDE.md** — re-render the template inner blocks from the updated profile and
+4. **AGENTS.md** — re-render the template inner blocks from the updated profile and
    splice via `bash tools/harness/render-block.sh <target> <block-file>`
    (never edit these files directly).
 5. **`.harness/agentstack.lock`** — set `updated` timestamp and append a `scans:` entry

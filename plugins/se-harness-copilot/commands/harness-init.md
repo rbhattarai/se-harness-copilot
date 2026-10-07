@@ -1,5 +1,5 @@
 ---
-description: Bootstrap the AI harness for this project — interview (new) or detect+confirm (existing), then generate profile, env, memory scaffold, org rules, and AGENTS.md/CLAUDE.md.
+description: Bootstrap the AI harness for this project — interview (new) or detect+confirm (existing), then generate profile, env, memory scaffold, org rules, and AGENTS.md.
 argument-hint: [--update]
 ---
 
@@ -34,9 +34,9 @@ automatically. Check once, up front, instead of letting an arbitrary later step 
         - **Multiple matches** (e.g. both a public and an internal-mirror install) → list them
           and ask the user which one via AskUserQuestion — never guess.
         - **None** → try (b).
-     b. A sibling framework checkout at `../se-harness/` (the side-by-side clone the setup
+     b. A sibling framework checkout at `../se-harness-copilot/` (the side-by-side clone the setup
         guides document) → if found, vendor
-        `../se-harness/plugins/se-harness-copilot/scripts/*.sh` the same way; else try (c).
+        `../se-harness-copilot/plugins/se-harness-copilot/scripts/*.sh` the same way; else try (c).
      c. Neither found → stop. Tell the user plainly: the scripts this command needs aren't
         vendored here and couldn't be found automatically. Give both options, let them pick:
         (a) check their own `~/.vscode/agent-plugins/` for the install themselves (path layout
@@ -151,6 +151,19 @@ the evidence you present.
     the whole proposed list with the user before writing it; validate with
     `bash tools/harness/workspace-validate.sh workspace.yaml` before reporting
     success.
+  - **Loop into each detected unit**, same shape as Step 1b (the sibling-clone path): ask once
+    whether to bootstrap every detected unit now (recommended), bootstrap specific ones (name
+    them), or leave `workspace.yaml` as the only artifact for now and let the user `/harness-init`
+    each unit manually later. If proceeding, the shared methodology/structural-memory/org
+    choices (Step 1b point 1) get asked **once here**, written to this same repo-root
+    `workspace.yaml`'s `shared:` block (there's no separate workspace root to write them to —
+    the mono-repo's own root *is* the workspace root); write the workspace-level memory
+    scaffold (Step 1b point 2) at this repo's root too, distinct from any unit's own
+    `.harness/memory/`. Then, for each chosen unit, `cd` into it and run Steps 2 through 8 of
+    this same command directly (Step 1b point 3's exact mechanism) — the repo root itself never
+    gets its own `.harness/profile.yaml`, only `workspace.yaml` and the shared memory scaffold;
+    each unit gets its own full bootstrap. Finalize and report the same way Step 1b point 4
+    does, unit | bootstrapped? | stack | methodology | structural_driver | notes.
 - **No markers, but internal module structure is evident** (Spring Modulith
   `@ApplicationModule`/`spring-modulith` dependency, NestJS feature folders each with their own
   `@Module()`, Django-style `INSTALLED_APPS` per-app folders, a `src/modules/`-or-`src/domains/`
@@ -186,12 +199,21 @@ and `shared.jira_project`/`shared.confluence_spaces`/`shared.sharepoint_sites`:
   reporting success.
 
 Ask only what wasn't detected and isn't already inherited. Cover:
-1. **Methodology** (workspace-scoped by default): BMAD (roles/stakeholders, enterprise) /
-   Spec Kit (greenfield, spec-first) / OpenSpec (brownfield, delta-based). Recommend based on
-   project type; user decides. If this repo's choice **deviates** from an inherited workspace
-   default, that's a documented exception: record it as an inline comment next to
-   `methodology:` in this repo's `profile.yaml` (e.g. `methodology: bmad   # workspace default
-   is openspec — deviates because <reason>`), never a silent divergence.
+1. **Methodology** (workspace-scoped by default): **se-harness (built-in)** (this framework's
+   own grill → REQ → story → design → implement → gates loop, zero extra dependencies — the
+   safe default for anyone who doesn't need a named methodology) / **OpenSpec** (brownfield,
+   delta-based) / BMAD (roles/stakeholders, enterprise) / Spec Kit (greenfield, spec-first).
+   Recommend based on project type; user decides. **Be honest about what's actually wired**:
+   only se-harness (built-in) and OpenSpec change `/harness-goal`'s own behavior today — pick
+   OpenSpec and step 3 of that loop runs `/opsx:propose` to seed the REQ, step 10 runs
+   `/opsx:archive` to close it (`/harness-methodology-openspec` handles setup). Picking BMAD or
+   Spec Kit installs the tool via `/harness-bootstrap` for the user's own parallel/manual use,
+   but `/harness-goal` still runs its own built-in loop regardless, exactly like choosing
+   se-harness (built-in) — say this plainly when either comes up, don't imply parity with
+   OpenSpec. If this repo's choice **deviates** from an inherited workspace default, that's a
+   documented exception: record it as an inline comment next to `methodology:` in this repo's
+   `profile.yaml` (e.g. `methodology: bmad   # workspace default is openspec — deviates because
+   <reason>`), never a silent divergence.
 2. **Stack** — *new projects only* (existing projects get this from `/harness-scan`):
    offer presets first — `Python (FastAPI + Postgres)`, `Node + React (Express/Postgres/Redis)`,
    `Node + Angular`, `Other (specify)` — then confirm databases/messaging/devops details.
@@ -200,7 +222,7 @@ Ask only what wasn't detected and isn't already inherited. Cover:
 4. **Non-code sources** (workspace-scoped by default): Jira project key, Confluence space keys,
    SharePoint sites (each optional — record "" when not used).
 
-## Step 5 — Organization context (required before AGENTS.md/CLAUDE.md is finalized)
+## Step 5 — Organization context (required before AGENTS.md is finalized)
 
 **Workspace inheritance first** (same lookup and write-back pattern as Step 4): if
 `shared.org` in the workspace manifest already has `internal_libraries`/`preferred_libraries`/
@@ -250,7 +272,7 @@ the user isn't left wondering why nothing got indexed yet.
 ## Step 7 — Generate artifacts
 Order matters; use the exact mechanics below.
 
-1. **`.harness/profile.yaml`** — render from `../se-harness/templates/profile.yaml`
+1. **`.harness/profile.yaml`** — render from `../se-harness-copilot/templates/profile.yaml`
    with all interview answers. Never put secrets here.
 2. **`.env.harness`** — copy `templates/env.harness.example` **only if `.env.harness` doesn't
    already exist**; leave existing files untouched. Tell the user which vars to fill for the
@@ -268,16 +290,15 @@ Order matters; use the exact mechanics below.
    ```
 5. **`.harness/org-rules.txt`** — one line per banned pair from the org answers:
    `banned:<never>:use <use> (<reason>)`. Empty file if none (the org-validate hook no-ops).
-6. **AGENTS.md and CLAUDE.md** — render the *inner* content of
-   `templates/AGENTS.md.tmpl` / `templates/CLAUDE.md.tmpl` (fill every `{{placeholder}}` from
-   the profile; drop sections whose data is empty; **do not include the marker lines** — the
-   splice script owns them). Write each rendered block to a temp file, then:
+6. **AGENTS.md** — render the *inner* content of `templates/AGENTS.md.tmpl` (fill every
+   `{{placeholder}}` from the profile; drop sections whose data is empty; **do not include the
+   marker lines** — the splice script owns them). Write the rendered block to a temp file, then:
    ```
    bash tools/harness/render-block.sh AGENTS.md <temp-agents-block>
-   bash tools/harness/render-block.sh CLAUDE.md <temp-claude-block>
    ```
-   This is the ONLY way to touch these files — never edit them directly, so hand-written
-   content outside the markers survives.
+   This is the ONLY way to touch this file — never edit it directly, so hand-written
+   content outside the markers survives. (Copilot reads `AGENTS.md` natively, so no
+   separate instructions file is needed.)
 7. **`.harness/agentstack.lock`** — JSON: `se_harness` version (from plugin.json),
    `initialized`/`updated` ISO dates, `profile` echo of key choices (methodology, stack,
    cloud, topology, `memory.structural_driver`), `components: {}` (Phase 3 fills this).
@@ -288,4 +309,4 @@ Summarize what was created vs. skipped (already existed). Then:
   code" (Phase 2 — if not yet available, say so and note the profile can be completed manually).
 - Both → next: Phase 3 bootstrap (methodology + stack plugins + the structural-memory driver
   chosen in Step 6, if any), then `/harness-goal <goal>`.
-- Remind: fill `.env.harness`, commit `.harness/` + AGENTS.md/CLAUDE.md, DON'T commit `.env.harness`.
+- Remind: fill `.env.harness`, commit `.harness/` + AGENTS.md, DON'T commit `.env.harness`.

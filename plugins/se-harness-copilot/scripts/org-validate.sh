@@ -36,6 +36,6 @@ while IFS= read -r rule; do
   esac
 done < "$RULES"
 
-# Surface warnings to Claude without failing the edit.
+# Surface warnings to the agent without failing the edit.
 [ "$WARNED" -eq 1 ] && exit 2
 exit 0

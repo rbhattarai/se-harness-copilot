@@ -1,21 +1,25 @@
 {
-  "_note": "Recommender data: maps profile keys to installable components. Sources: official Claude marketplace (B9 inventory) unless 'marketplace' says otherwise. Honest gaps are recorded as 'none' with a note — the recommender must never invent a plugin name. Update this file as marketplaces evolve; CI should validate plugin names against the live marketplace list.",
+  "_note": "Recommender data: maps profile keys to installable components. Sources: third-party marketplaces (B9 inventory) unless 'marketplace' says otherwise. Honest gaps are recorded as 'none' with a note — the recommender must never invent a plugin name. Update this file as marketplaces evolve; CI should validate plugin names against the live marketplace list.",
   "methodologies": {
+    "se-harness": {
+      "kind": "native",
+      "note": "Displayed to the user as \"se-harness (built-in)\" — this framework's own grill -> REQ -> story -> design -> implement -> gates loop (see /harness-goal). Nothing to install, nothing for /harness-bootstrap to do for this entry — selecting it just means /harness-goal runs its own loop undelegated. The safe default for anyone who doesn't need a named external methodology."
+    },
     "bmad": {
       "kind": "plugin",
       "marketplace": "PabloLION/bmad-plugin",
       "plugin": "bmad",
-      "note": "BMAD v6 port: 9 agents, 26 workflows. BMAD core team's official installer in progress (bmad-code-org/BMAD-METHOD#746) — prefer official when released."
+      "note": "BMAD v6 port: 9 agents, 26 workflows. BMAD core team's official installer in progress (bmad-code-org/BMAD-METHOD#746) — prefer official when released. Not yet delegated to by /harness-goal (installed for the user's own parallel/manual use) — it runs its own built-in loop regardless, same as se-harness (built-in), until that integration is built."
     },
     "spec-kit": {
       "kind": "cli",
       "install": "uvx --from git+https://github.com/github/spec-kit.git specify init --here",
-      "note": "Installs /speckit.* commands into the repo. Requires uv (Python)."
+      "note": "Installs /speckit.* commands into the repo. Requires uv (Python). Not yet delegated to by /harness-goal (installed for the user's own parallel/manual use) — it runs its own built-in loop regardless, same as se-harness (built-in), until that integration is built."
     },
     "openspec": {
       "kind": "cli",
-      "install": "npx @fission-ai/openspec@latest init",
-      "note": "Delta-based SDD, best for brownfield. Requires Node 20+. Package name is @fission-ai/openspec (github.com/Fission-AI/OpenSpec) — the unscoped 'openspec' npm package is an unrelated 0.0.0 placeholder, not this project."
+      "install": "npm install -g @fission-ai/openspec@latest",
+      "note": "Delta-based SDD, best for brownfield. Requires Node 20+. Package name is @fission-ai/openspec (github.com/Fission-AI/OpenSpec) — the unscoped 'openspec' npm package is an unrelated 0.0.0 placeholder, not this project. se-harness's own /harness-methodology-openspec handles the fuller gated install-plus-init sequence (/harness-bootstrap hands off to it rather than running the bare install command) and /harness-goal actually drives the lifecycle: step 3 runs /opsx:propose to seed the REQ, step 10 runs /opsx:archive to close it — the only methodology actually delegated to today besides se-harness (built-in) itself."
     }
   },
   "stack": {
@@ -77,7 +81,7 @@
         "codebase-memory-mcp (DeusData/codebase-memory-mcp)",
         "Graphify (Graphify-Labs/graphify)"
       ],
-      "note": "A7 bake-off pending — the first three are MCP servers configured via .mcp.json, not marketplace plugins. Two unrelated projects share the 'CodeGraph' name: codegraph-ai/CodeGraph (tree-sitter semantic graph, 42+ MCP tools, RocksDB persistent memory layer, VS Code extension) vs colbymchenry/codegraph (lightweight pre-indexed graph, CLI-installed, SQLite, native OS file-watcher auto-sync, no external services) — confirm which repo the user means before installing. colbymchenry/codegraph installs via: curl -fsSL https://raw.githubusercontent.com/colbymchenry/codegraph/main/install.sh | sh (macOS/Linux) or npm i -g @colbymchenry/codegraph, then `codegraph install` + `codegraph init [path]`. codebase-memory-mcp has its own installer: curl -fsSL https://raw.githubusercontent.com/DeusData/codebase-memory-mcp/main/install.sh | bash. Graphify is CLI + skill based, not MCP-first: PyPI package is `graphifyy` (double-y; the CLI command stays `graphify`) — install via `uv tool install graphifyy` (or `pipx install graphifyy`), then `graphify install --project` to register a project-scoped `/graphify` skill (writes `.claude/skills/graphify/SKILL.md`, committable), or `graphify claude install --project` to also wire the PreToolUse hook that nudges (or, with `--strict`, blocks-once-per-session) raw file reads toward `graphify query` instead — a natural pairing with se-harness's own hook-enforced gates. Local tree-sitter AST parsing for code, no vector store; docs/PDF/image/video ingestion calls the assistant's model API. An `.mcp.json` route exists too if MCP access is preferred over the skill: `uv tool install \"graphifyy[mcp]\"` then `python -m graphify.serve graphify-out/graph.json`. If Graphify is chosen, se-harness's own /harness-mem-graphify command (not this registry entry's install line) is what /harness-bootstrap hands off to for the actual install-plus-first-build — it also handles merging multiple repos' graphs into one workspace-level graph, which a bare Graphify install doesn't do on its own."
+      "note": "A7 bake-off pending — the first three are MCP servers configured via .mcp.json, not marketplace plugins. Two unrelated projects share the 'CodeGraph' name: codegraph-ai/CodeGraph (tree-sitter semantic graph, 42+ MCP tools, RocksDB persistent memory layer, VS Code extension) vs colbymchenry/codegraph (lightweight pre-indexed graph, CLI-installed, SQLite, native OS file-watcher auto-sync, no external services) — confirm which repo the user means before installing. colbymchenry/codegraph installs via: curl -fsSL https://raw.githubusercontent.com/colbymchenry/codegraph/main/install.sh | sh (macOS/Linux) or npm i -g @colbymchenry/codegraph, then `codegraph install` + `codegraph init [path]`. codebase-memory-mcp has its own installer: curl -fsSL https://raw.githubusercontent.com/DeusData/codebase-memory-mcp/main/install.sh | bash. Graphify is CLI + skill based, not MCP-first: PyPI package is `graphifyy` (double-y; the CLI command stays `graphify`) — install via `uv tool install graphifyy` (or `pipx install graphifyy`), then `graphify install --project` to register a project-scoped `/graphify` skill (committable), or a graphify platform install to also wire the PreToolUse hook that nudges (or, with `--strict`, blocks-once-per-session) raw file reads toward `graphify query` instead — a natural pairing with se-harness's own hook-enforced gates. Local tree-sitter AST parsing for code, no vector store; docs/PDF/image/video ingestion calls the assistant's model API. An `.mcp.json` route exists too if MCP access is preferred over the skill: `uv tool install \"graphifyy[mcp]\"` then `python -m graphify.serve graphify-out/graph.json`. If Graphify is chosen, se-harness's own /harness-mem-graphify command (not this registry entry's install line) is what /harness-bootstrap hands off to for the actual install-plus-first-build — it also handles merging multiple repos' graphs into one workspace-level graph, which a bare Graphify install doesn't do on its own."
     }
   }
 }

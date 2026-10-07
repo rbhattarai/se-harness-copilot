@@ -5,9 +5,9 @@ description: Budgeted, progressive-disclosure memory context for every request. 
 
 # Context Injector
 
-Doctrine (brainstorm.md A5 #1): **do not feed everything on every request.** Three layers:
+Doctrine (design principle): **do not feed everything on every request.** Three layers:
 
-1. **Always loaded (cheap index)** — AGENTS.md/CLAUDE.md generated blocks + the one-line-per-entry
+1. **Always loaded (cheap index)** — AGENTS.md generated blocks + the one-line-per-entry
    index in `.harness/memory/MEMORY.md`. These tell you *what exists*, not the content.
 2. **Budgeted hot set (injected per turn)** — assembled by `scripts/inject-context.sh` on
    UserPromptSubmit, priority order with hard caps (~16K chars total, agentmemory pattern):

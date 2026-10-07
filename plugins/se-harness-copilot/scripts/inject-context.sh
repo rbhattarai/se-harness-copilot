@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # inject-context.sh — UserPromptSubmit hook (v0).
 # Assembles the budgeted memory hot set (see skills/context-injector/SKILL.md) and prints it
-# to stdout; Claude Code appends stdout of UserPromptSubmit hooks as context.
+# to stdout; Copilot appends stdout of UserPromptSubmit hooks as context.
 # Caps are in bytes (approximation of chars). Silent no-op when .harness/ is absent.
 
 set -u
