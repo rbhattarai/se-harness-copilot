@@ -8,17 +8,18 @@ uses **GitHub Copilot**. Written for a first-time user.
 **se-harness** wraps an AI-agentic SDLC harness around any software project — new or
 existing, any stack. Installing it gives your Copilot sessions:
 
-- **6 commands** — `harness-init` (intake interview → generates AGENTS.md,
+- **7 commands** — `harness-init` (intake interview → generates AGENTS.md,
   `.harness/profile.yaml`, memory seeds), `harness-scan` (brownfield stack/org detection),
   `harness-bootstrap` (recommends & installs companion plugins/MCP servers),
   `harness-goal` (the delivery loop: grill → requirement → stories → implement → test →
   PR → deploy, with 3 human-approval gates), `harness-sync` (drift detection & refresh),
-  `harness-export` (compile agents for other tools).
+  `harness-export` (vendor agents + hooks into `.github/`), `harness-mem-graphify` (build/maintain
+  Graphify structural-memory indexes, per-repo and workspace-merged).
 - **12 SDLC agents** — architect, story-writer, backend/frontend implementers, db-engineer,
   unit/integration testers, e2e planner/generator/healer, release-manager, and a
   workspace-orchestrator for multi-component requirements (used only when one applies).
-- **14 skills** — stack-detector, requirement-grill, memory-keeper, wiki-ingest/query/lint,
-  context-injector conventions, coding-discipline, plus the six commands as CLI skills.
+- **15 skills** — stack-detector, requirement-grill, memory-keeper, wiki-ingest/query/lint,
+  context-injector conventions, coding-discipline, plus the seven commands as CLI skills.
 - **Enforcement hooks** — a human-in-the-loop gate that denies PR/push/deploy until a
   requirement is `approved`, org-rules validation on edits, contract-impact checking across
   repos, and automatic memory logging of commits/PRs.
@@ -484,7 +485,7 @@ This repo is the source of truth — edit `plugins/se-harness-copilot/` directly
 build step). To add e.g. a new agent or skill:
 
 1. Add/edit files under `plugins/se-harness-copilot/` (`agents/<name>.agent.md`,
-   `skills/<name>/SKILL.md`, `commands/*.md`, `scripts/*.sh`). The six `harness-*` commands
+   `skills/<name>/SKILL.md`, `commands/*.md`, `scripts/*.sh`). The seven `harness-*` commands
    exist twice — `commands/<n>.md` and `skills/<n>/SKILL.md` (Copilot registers commands as
    skills); keep the two bodies in sync (`tests/run-tests.sh` checks this).
 2. Bump `version` in `plugins/se-harness-copilot/plugin.json` **and**

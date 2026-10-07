@@ -47,7 +47,12 @@ For each selected component, by `kind`:
   environment, print the exact commands for the user to run interactively and mark the item
   `pending-manual` in the lockfile.
 - **cli**: run the registry's `install` command verbatim (confirm with the user first — it
-  executes third-party code).
+  executes third-party code). **Exception: the Graphify component.** Don't run its bare
+  `uv tool install graphifyy` here — hand off to `/harness-mem-graphify` instead (confirm
+  first, same as any third-party install). It owns the fuller gated sequence this step doesn't
+  (Python/uv prerequisite checks, an org's private package index from
+  `shared.package_index` if set, the first index build, and the lockfile record) — running
+  the bare command here would both duplicate and undercut it.
 - **mcp**: render the needed entries from `templates/mcp.json.tmpl` into the project's
   `.mcp.json` (merge — never clobber existing servers; secrets stay `${VAR}` references
   to `.env.harness`).
@@ -60,7 +65,15 @@ For each selected component, by `kind`:
    receiving updates — say so).
 2. Project-specific quality gates beyond the built-ins (gate-check, org-validate): point the
    user at the `hookify` plugin for authoring extra rules as hooks.
-3. Re-render AGENTS.md blocks via
+3. **Graphify selected and installed this run**: offer to wire
+   `tools/harness/graphify-update-hook.sh` as a postToolUse hook for this repo (e.g. in
+   `.github/hooks/`). It only runs the cheap incremental `graphify update . --no-cluster`
+   after a commit, in the background, and no-ops instantly for any repo that didn't choose
+   Graphify — it's opt-in per repo, never bundled into the plugin's own global hooks.json.
+   Mention plainly that it can't cover the workspace-level merge (a hook only sees the repo its
+   session is in) — `/harness-mem-graphify`'s own "Keeping this fresh automatically" section
+   covers that gap and what to do about it.
+4. Re-render AGENTS.md blocks via
    `bash tools/harness/render-block.sh <target> <block-file>` so the generated
    block reflects what's now installed.
 
