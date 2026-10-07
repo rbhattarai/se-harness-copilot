@@ -12,7 +12,7 @@ Set Theme "Catppuccin Mocha"
 Set TypingSpeed 40ms
 
 # Scene 1 — init: scan + confirm
-Type "copilot"
+Type "claude"
 Enter
 Sleep 4s
 Type "/harness-init"
@@ -30,7 +30,7 @@ Enter
 Sleep 4s
 
 # Scene 3 — goal loop hits the gate
-Type "copilot"
+Type "claude"
 Enter
 Sleep 4s
 Type '/harness-goal "Add CSV export to the reports page"'

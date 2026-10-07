@@ -1,19 +1,22 @@
 # Setup Guide: se-harness with GitHub Copilot
 
 A step-by-step guide for bootstrapping the **se-harness** framework in an organization that
-uses **GitHub Copilot**. Written for a first-time user.
+uses **GitHub Copilot** (not Claude Code). Written for a first-time user.
+
+> Using **Claude Code** instead? See [`setup-guide-claude.md`](./setup-guide-claude.md) —
+> same framework, same artifacts, simpler install.
 
 ## What is this plugin?
 
 **se-harness** wraps an AI-agentic SDLC harness around any software project — new or
 existing, any stack. Installing it gives your Copilot sessions:
 
-- **7 commands** — `harness-init` (intake interview → generates AGENTS.md,
+- **7 commands** — `harness-init` (intake interview → generates AGENTS.md/CLAUDE.md,
   `.harness/profile.yaml`, memory seeds), `harness-scan` (brownfield stack/org detection),
   `harness-bootstrap` (recommends & installs companion plugins/MCP servers),
   `harness-goal` (the delivery loop: grill → requirement → stories → implement → test →
   PR → deploy, with 3 human-approval gates), `harness-sync` (drift detection & refresh),
-  `harness-export` (vendor agents + hooks into `.github/`), `harness-mem-graphify` (build/maintain
+  `harness-export` (compile agents for other tools), `harness-mem-graphify` (build/maintain
   Graphify structural-memory indexes, per-repo and workspace-merged).
 - **12 SDLC agents** — architect, story-writer, backend/frontend implementers, db-engineer,
   unit/integration testers, e2e planner/generator/healer, release-manager, and a
@@ -26,7 +29,8 @@ existing, any stack. Installing it gives your Copilot sessions:
 - **A 3-tier memory system** — structural code index, append-only decision log, and a
   synthesized domain wiki — all plain committed files under `.harness/`.
 
-The framework ships as the Copilot CLI plugin in `plugins/se-harness-copilot`. The
+The framework is Claude-Code-first and **dual-published**: `plugins/se-harness` is the
+source of truth; `plugins/se-harness-copilot` is generated from it for Copilot CLI. The
 artifacts it writes into your repos (AGENTS.md, `.harness/`) are tool-agnostic.
 
 **Structure of this guide**: Part 1 covers getting the framework installed (including
@@ -55,7 +59,8 @@ Replace names/paths with your own product's.
 
 ## 0. What you get on Copilot (read this first — honest expectations)
 
-This repo is a Copilot marketplace: it serves a Copilot CLI plugin (agents + skills + commands) and repo-level
+This framework is built Claude-Code-first and **dual-published for Copilot**: the same
+marketplace repo serves a Copilot CLI plugin (agents + skills + commands) and repo-level
 hooks. The remaining gaps are surface-specific (VS Code Chat), not wholesale:
 
 | Piece | On Copilot |
@@ -65,7 +70,7 @@ hooks. The remaining gaps are surface-specific (VS Code Chat), not wholesale:
 | Commands (`/harness-init`, `/harness-goal`, …) | ✅ Ship in the **Copilot CLI plugin** (4.2); also usable as prompt files (`.github/prompts/*.prompt.md`) in VS Code Chat (4.3) |
 | Skills (stack-detector, requirement-grill, memory-keeper, wiki-*) | ✅ Same SKILL.md standard — bundled in the CLI plugin (4.2) |
 | Shell scripts (scan, splice, REQ scaffolding, worktrees, contract-check) | ✅ Run in Git Bash — by you or by Copilot agent mode's terminal |
-| Enforcement hooks (HITL gate, org-rules validation, memory auto-log, contract-check) | ✅ All surfaces: bundled in the CLI plugin (4.2), repo-level `.github/hooks/*.json` for the coding agent (4.7), and **VS Code loads `.github/hooks/*.json` too**. Actions + branch protection remain the human-binding backstop (Part 6) |
+| Enforcement hooks (HITL gate, org-rules validation, memory auto-log, contract-check) | ✅ All surfaces: bundled in the CLI plugin (4.2), repo-level `.github/hooks/*.json` for the coding agent (4.7), and **VS Code loads `.github/hooks/*.json` too** (Claude-style semantics). Actions + branch protection remain the human-binding backstop (Part 6) |
 | MCP servers (Atlassian/Jira, GitHub) | ✅ Portable — VS Code Copilot supports MCP via `.vscode/mcp.json` |
 | `.harness/` artifacts (profile, requirements, memory) | ✅ Plain committed files — tool-agnostic |
 
@@ -84,7 +89,7 @@ If your machine can reach public GitHub and plugin installs aren't restricted, t
 two-liner in Copilot CLI:
 
 ```bash
-copilot plugin marketplace add rohanbhattaraidev-beep/se-harness-copilot
+copilot plugin marketplace add rbhattarai/se-harness
 copilot plugin install se-harness-copilot@se-harness
 ```
 
@@ -96,14 +101,14 @@ Verify: `copilot plugin list` shows `se-harness-copilot`, and a new session can 
 Do **not** hand-copy an unreviewed zip from the public internet into firm infrastructure.
 Follow your firm's third-party/OSS intake process:
 
-1. The framework lives at public GitHub as `rohanbhattaraidev-beep/se-harness-copilot`
+1. The framework lives at public GitHub as `rbhattarai/se-harness`
    (it contains no company or product data — verify by reading it; it's small).
 2. Request your platform/security team to **import it into GitHub Enterprise as an internal
-   repo**, e.g. `yourorg/se-harness-copilot` (GitHub's "Import repository", or fork if your enterprise
+   repo**, e.g. `yourorg/se-harness` (GitHub's "Import repository", or fork if your enterprise
    allows). This preserves history and makes future updates a `git pull`, not a re-copy.
 3. Then install from the internal copy:
    ```bash
-   copilot plugin marketplace add yourorg/se-harness-copilot
+   copilot plugin marketplace add yourorg/se-harness
    copilot plugin install se-harness-copilot@se-harness
    ```
 4. From now on, everything references the **internal** copy.
@@ -119,7 +124,7 @@ If policy forces offline transfer, or `copilot plugin marketplace add` is blocke
    better, because updates stay pullable).
 3. Copilot CLI installs plugins from a **local path** too:
    ```bash
-   copilot plugin install /c/tools/se-harness-copilot/plugins/se-harness-copilot
+   copilot plugin install /c/tools/se-harness/plugins/se-harness-copilot
    ```
    Or register the unzipped folder as a local marketplace:
    ```bash
@@ -153,7 +158,7 @@ git clone <internal-git-url>/common.git
 git clone <internal-git-url>/ui.git
 git clone <internal-git-url>/config.git
 git clone <internal-git-url>/database-config.git
-git clone <internal-git-url>/se-harness-copilot.git       # the framework (internal copy)
+git clone <internal-git-url>/se-harness.git       # the framework (internal copy)
 ```
 
 Why side-by-side: the workspace manifest, contract-check, and any cross-repo reading all
@@ -163,7 +168,7 @@ assume sibling checkouts (`../workspace.yaml` lookup).
 
 ## Part 3 — The workspace manifest (`workspace.yaml`)
 
-Create `acme-loan-platform/workspace.yaml` from `se-harness-copilot/templates/workspace.yaml`. This is the
+Create `acme-loan-platform/workspace.yaml` from `se-harness/templates/workspace.yaml`. This is the
 product-level file: topology, shared org context, and the **contract registry** that powers
 cross-repo impact checking. An acme-loan-platform-shaped example:
 
@@ -216,7 +221,7 @@ get it via clone; until then it can live uncommitted in the `acme-loan-platform/
 to model components *inside* it (not just the repo as a whole), `workspace.yaml` supports an
 optional, additive `schemaVersion: 2` block with `components:`/`relationships:` sections — see the
 commented example at the bottom of `templates/workspace.yaml` and validate it with
-`bash se-harness-copilot/plugins/se-harness-copilot/scripts/workspace-validate.sh`. This is opt-in and only needed
+`bash se-harness/plugins/se-harness/scripts/workspace-validate.sh`. This is opt-in and only needed
 past the simple one-unit-per-repo case above; `contracts:`/`contract-check.sh` are unaffected
 either way.
 
@@ -235,17 +240,17 @@ Chat, select agent mode.
 ### 4.1 Run the intake as a prompt
 Paste this into Copilot Chat (agent mode), adjusting the harness path:
 
-> Read `../se-harness-copilot/plugins/se-harness-copilot/commands/harness-init.md` and execute its steps
+> Read `../se-harness/plugins/se-harness/commands/harness-init.md` and execute its steps
 > against this repository as an **existing project**. Also read
-> `../se-harness-copilot/plugins/se-harness-copilot/commands/harness-scan.md` and
-> `../se-harness-copilot/plugins/se-harness-copilot/skills/stack-detector/SKILL.md`, run
-> `bash ../se-harness-copilot/plugins/se-harness-copilot/scripts/scan-evidence.sh` in the terminal, and use
+> `../se-harness/plugins/se-harness/commands/harness-scan.md` and
+> `../se-harness/plugins/se-harness/skills/stack-detector/SKILL.md`, run
+> `bash ../se-harness/plugins/se-harness/scripts/scan-evidence.sh` in the terminal, and use
 > its output as the detection evidence. Interview me for anything you can't detect —
 > especially organization context (internal libraries, preferred/banned libraries, coding
-> conventions). Write the artifacts exactly as the command specifies. For AGENTS.md,
-> render the inner block to a temp file and splice it with
-> `bash ../se-harness-copilot/plugins/se-harness-copilot/scripts/render-block.sh <target> <temp-file>` —
-> never edit that file directly.
+> conventions). Write the artifacts exactly as the command specifies. For AGENTS.md and
+> CLAUDE.md, render the inner block to a temp file and splice it with
+> `bash ../se-harness/plugins/se-harness/scripts/render-block.sh <target> <temp-file>` —
+> never edit those files directly.
 
 Expected results in the repo afterwards (verify each):
 - `.harness/profile.yaml` — stack detected (e.g. backend-core: dotnet/csharp/mssql), org
@@ -254,14 +259,16 @@ Expected results in the repo afterwards (verify each):
   gitignore lines are appended automatically)
 - `.harness/memory/` — MEMORY.md, SCRATCHPAD.md, daily/, wiki/
 - `.harness/org-rules.txt` — one `banned:` line per use-X-never-Y answer
-- `AGENTS.md` — with `SEAA:GENERATED` markers (Copilot reads it natively)
+- `AGENTS.md` + `CLAUDE.md` — with `SEAA:GENERATED` markers (CLAUDE.md costs nothing to keep
+  and helps anyone using Claude tools later; Copilot reads both)
 
 ### 4.2 The Copilot CLI plugin (agents + skills + commands in one step)
-If you followed Part 1 you already have it — the framework is a **Copilot CLI
-plugin** ([plugins docs](https://docs.github.com/en/copilot/concepts/agents/copilot-cli/about-cli-plugins); the plugin gives every Copilot
+If you followed Part 1 you already have it — the framework dual-publishes as a **Copilot CLI
+plugin** ([plugins docs](https://docs.github.com/en/copilot/concepts/agents/copilot-cli/about-cli-plugins));
+Copilot CLI reads the same marketplace file Claude Code uses. The plugin gives every Copilot
 CLI session: the **12-agent roster** (as `*.agent.md`), the **8 harness skills**
 (context-injector conventions, stack-detector, requirement-grill, memory-keeper,
-wiki-ingest/query/lint, coding-discipline), the **harness commands**
+wiki-ingest/query/lint, coding-discipline — same SKILL.md standard as Claude), the **harness commands**
 (goal/init/scan/bootstrap/sync/export, also registered as CLI skills — `copilot harness-goal …`),
 and the **bundled enforcement hooks**. Note: plugin components are cached — after updating
 the internal repo, run `copilot plugin update se-harness-copilot`.
@@ -274,10 +281,10 @@ The CLI plugin doesn't cover the **coding agent on github.com** or **VS Code Cha
 those their repo-level equivalents:
 ```bash
 cd frontend    # (each repo)
-bash ../se-harness-copilot/plugins/se-harness-copilot/scripts/export-agents.sh copilot .   # → .github/agents/*.md
+bash ../se-harness/plugins/se-harness/scripts/export-agents.sh copilot .   # → .github/agents/*.md
 mkdir -p .github/prompts
-cp ../se-harness-copilot/plugins/se-harness-copilot/commands/harness-goal.md .github/prompts/harness-goal.prompt.md
-cp ../se-harness-copilot/plugins/se-harness-copilot/commands/harness-sync.md .github/prompts/harness-sync.prompt.md
+cp ../se-harness/plugins/se-harness-copilot/commands/harness-goal.md .github/prompts/harness-goal.prompt.md
+cp ../se-harness/plugins/se-harness-copilot/commands/harness-sync.md .github/prompts/harness-sync.prompt.md
 ```
 (The `se-harness-copilot` command copies already have script paths rewritten to
 `tools/harness/` — no editing needed if you vendor the scripts in 4.7.)
@@ -296,7 +303,7 @@ by the harness; this pointer never changes).
 ### 4.5 MCP (Jira/Confluence + GitHub)
 With your firm's approval, add `.vscode/mcp.json` (or user-level MCP config) with the
 Atlassian MCP server so story-writer flows can create Jira stories/XRay test cases. Reference:
-`se-harness-copilot/templates/mcp.json.tmpl`. Secrets via environment, never in the file.
+`se-harness/templates/mcp.json.tmpl`. Secrets via environment, never in the file.
 
 ### 4.6 The two non-code repos (lighter treatment)
 - `config`: no `.harness/` needed. Add a short hand-written `AGENTS.md` explaining the
@@ -309,7 +316,8 @@ Atlassian MCP server so story-writer flows can create Jira stories/XRay test cas
 ### 4.7 Install the enforcement hooks (repo level — coding agent + VS Code)
 **If you installed the CLI plugin (4.2), Copilot CLI already has the hooks** — the plugin
 bundles them with plugin-root-relative paths. This step adds the **repo-level** copy that the
-cloud coding agent and **VS Code** pick up (VS Code loads `.github/hooks/*.json` — [VS Code docs](https://code.visualstudio.com/docs/copilot/customization/hooks)).
+cloud coding agent and **VS Code** pick up (VS Code loads `.github/hooks/*.json` with
+Claude-style semantics — [VS Code docs](https://code.visualstudio.com/docs/copilot/customization/hooks)).
 Semantics differ per surface ([reference](https://docs.github.com/en/copilot/reference/hooks-reference)):
 CLI/coding agent deny via JSON `permissionDecision` and exit 2 does **not** block there, while
 VS Code honors exit 2 — the bundled adapter's deny-JSON output works on **all** surfaces, so
@@ -319,11 +327,11 @@ In each code repo:
 ```bash
 # 1. Vendor the scripts so the repo is self-contained (CI and the cloud agent can't reach ../)
 mkdir -p tools/harness
-cp ../se-harness-copilot/plugins/se-harness-copilot/scripts/{copilot-hook-adapter.sh,gate-check.sh,org-validate.sh,memory-log-commit.sh,contract-check.sh} tools/harness/
+cp ../se-harness/plugins/se-harness/scripts/{copilot-hook-adapter.sh,gate-check.sh,org-validate.sh,memory-log-commit.sh,contract-check.sh} tools/harness/
 
 # 2. Install the hook config
 mkdir -p .github/hooks
-cp ../se-harness-copilot/templates/copilot-hooks.json .github/hooks/se-harness.json
+cp ../se-harness/templates/copilot-hooks.json .github/hooks/se-harness.json
 ```
 What you get: `preToolUse` — HITL gate (denies PR/push/deploy while no REQ is `approved`) and
 contract-check (denies push when a provided contract changed, listing consumers);
@@ -345,7 +353,7 @@ Commit everything except `.env.harness` in each repo via your normal PR process.
    prefer, and what's banned?"* — the answer must come from AGENTS.md's org section.
 2. Ask: *"What is the workflow for implementing a new requirement here?"* — expect the
    goal-loop summary (REQ → approval → story → implement → tests → PR gates).
-3. Run `bash ../se-harness-copilot/plugins/se-harness-copilot/scripts/scan-evidence.sh | head -40` in Git
+3. Run `bash ../se-harness/plugins/se-harness/scripts/scan-evidence.sh | head -40` in Git
    Bash — confirm it sees your manifests and internal package scopes.
 4. On github.com, assign a trivial issue to the Copilot coding agent in that repo and confirm
    its PR description reflects AGENTS.md conventions.
@@ -391,7 +399,7 @@ For a new feature/fix in, say, `backend-core`:
    asks for this file.
 3. Continue: story/test cases to Jira (Atlassian MCP), design, implementation (worktrees via
    `worktree-task.sh` if parallel tasks), tests. Cross-repo impact: run
-   `bash ../se-harness-copilot/plugins/se-harness-copilot/scripts/contract-check.sh --` before pushing —
+   `bash ../se-harness/plugins/se-harness/scripts/contract-check.sh --` before pushing —
    CI re-checks it anyway.
 4. PR through your normal review (gate 2 = human review + green checks).
 5. Deploy per your firm's release process (gate 3) — the release-manager agent profile helps
@@ -403,7 +411,7 @@ For a new feature/fix in, say, `backend-core`:
 
 ## Part 8 — Maintenance, troubleshooting, FAQ
 
-**Framework updates**: pull the internal `se-harness-copilot` repo, then per repo run the
+**Framework updates**: pull the internal `se-harness` repo, then per repo run the
 `/harness-sync` prompt file — it diffs profile/recommendations/templates (template drift is
 detected via `template-hash.sh`) and refreshes only the `SEAA:GENERATED` blocks. Hand-written
 content outside the markers is never touched.
@@ -426,6 +434,9 @@ content outside the markers is never touched.
   (`frontend`, `backend-core`, `backend-integration`, `common`, `ui`); `config` and
   `database-config` get the light treatment (4.6). Copilot's own "generate instructions"
   feature is optional — AGENTS.md is already the cross-tool source of truth.
+- *Do we need Claude Code at all?* No — everything in this guide runs on Copilot. If the org
+  later allows Claude Code, the same repos gain the full automation (hooks, gates, slash
+  commands) with zero migration: the artifacts are identical.
 
 ---
 
@@ -449,7 +460,8 @@ copilot            # start a CLI session in the repo
    what it can't detect — expect questions about methodology, org/internal libraries, banned
    libraries, and conventions. For a **new** repo it interviews first, then scaffolds.
 2. **Verify the artifacts** (same list as 4.1): `.harness/profile.yaml`, `.env.harness`
-   (fill locally, never commit), `.harness/memory/`, `.harness/org-rules.txt`, `AGENTS.md` with `SEAA:GENERATED` markers.
+   (fill locally, never commit), `.harness/memory/`, `.harness/org-rules.txt`, `AGENTS.md` +
+   `CLAUDE.md` with `SEAA:GENERATED` markers.
 3. **Optional extras from Part 4**, all still apply per-repo: `.github/agents/` +
    `.github/prompts/` for the coding agent / VS Code (4.3), the thin
    `copilot-instructions.md` (4.4), MCP (4.5), repo-level hooks (4.7 — the CLI already has
@@ -472,42 +484,47 @@ Two situations: consuming an update someone else published, or making changes yo
 
 ### 10.1 Consuming an update
 ```bash
-git -C se-harness-copilot pull                        # if you cloned the framework repo (Part 2)
+git -C se-harness pull                        # if you cloned the framework repo (Part 2)
 copilot plugin update se-harness-copilot      # refresh the cached plugin
 ```
 Then per managed repo, run the `harness-sync` command (or the `/harness-sync` prompt file) —
 it diffs profile/recommendations/templates and refreshes **only** the `SEAA:GENERATED`
 blocks; hand-written content is never touched. If you vendored scripts (4.7), re-copy them:
-`cp ../se-harness-copilot/plugins/se-harness-copilot/scripts/*.sh tools/harness/`.
+`cp ../se-harness/plugins/se-harness/scripts/*.sh tools/harness/`.
 
 ### 10.2 Making your own changes
-This repo is the source of truth — edit `plugins/se-harness-copilot/` directly (there is no
-build step). To add e.g. a new agent or skill:
+The iron rule: **edit only `plugins/se-harness/` (the Claude-first source)** —
+`plugins/se-harness-copilot/` and `.github/plugin/marketplace.json` are generated and will
+be overwritten. To add e.g. a new agent or skill:
 
-1. Add/edit files under `plugins/se-harness-copilot/` (`agents/<name>.agent.md`,
-   `skills/<name>/SKILL.md`, `commands/*.md`, `scripts/*.sh`). The seven `harness-*` commands
-   exist twice — `commands/<n>.md` and `skills/<n>/SKILL.md` (Copilot registers commands as
-   skills); keep the two bodies in sync (`tests/run-tests.sh` checks this).
-2. Bump `version` in `plugins/se-harness-copilot/plugin.json` **and**
-   `.github/plugin/marketplace.json` (`metadata.version`) — version changes are how Copilot
-   detects updates.
-3. Run `bash tests/run-tests.sh`.
-4. Commit, push, then reinstall/update the plugin (10.1). For a local-path install,
-   uninstall + reinstall (components are cached).
+1. Add/edit files under `plugins/se-harness/` (`agents/*.md`, `skills/<name>/SKILL.md`,
+   `commands/*.md`, `scripts/*.sh`).
+2. Bump `version` in `plugins/se-harness/.claude-plugin/plugin.json` **and** in the
+   `plugin.json` heredoc inside `scripts/build-copilot-plugin.sh` (the generated plugin's
+   version) — version changes are how both ecosystems detect updates.
+3. Regenerate the Copilot variant and the marketplace mirror:
+   ```bash
+   bash plugins/se-harness/scripts/build-copilot-plugin.sh
+   ```
+4. Sanity-check: `python -c "import json; json.load(open('plugins/se-harness-copilot/plugin.json'))"`,
+   and if you have Claude Code, `claude plugin validate plugins/se-harness --strict`.
+5. Commit both the source and the regenerated output, push, then reinstall/update the plugin
+   (10.1). For a local-path install, uninstall + reinstall (components are cached).
 
 ---
 
 ## Part 11 — Publishing to the marketplaces
 
-This repo **is already a marketplace** — `.github/plugin/marketplace.json` (Copilot's
-canonical location). Publishing has two tiers:
+This repo **is already a marketplace** — `.claude-plugin/marketplace.json` (read by both
+ecosystems) plus the generated mirror at `.github/plugin/marketplace.json` (Copilot's
+canonical location). Publishing therefore has two tiers:
 
 ### 11.1 Your own marketplace (available today)
-1. Run `bash tests/run-tests.sh`.
+1. Run the build script (regenerates the Copilot plugin + mirrors the marketplace file).
 2. Commit, push to GitHub (public, or internal for enterprise), and tag a release
    (`git tag v0.1.0 && git push --tags`) so zip-route users get a stable snapshot.
 3. Anyone can now install with
-   `copilot plugin marketplace add <owner>/<repo>` → `copilot plugin install se-harness-copilot@se-harness-copilot`.
+   `copilot plugin marketplace add <owner>/<repo>` → `copilot plugin install se-harness-copilot@se-harness`.
 4. **Enterprise-wide**: ask your GitHub admin to distribute it via
    [enterprise-managed plugins](https://github.blog/changelog/2026-05-06-enterprise-managed-plugins-in-github-copilot-cli-are-now-in-public-preview/) —
    auto-installed for every developer, hooks/MCP can be forced always-on for governance.
@@ -518,7 +535,8 @@ Every Copilot CLI ships with two marketplaces pre-registered: **`github/copilot-
 their repo** adding an entry to their `marketplace.json` that points at yours:
 ```json
 { "name": "se-harness-copilot",
-  "source": { "source": "github", "repo": "rohanbhattaraidev-beep/se-harness-copilot", "path": "plugins/se-harness-copilot" } }
+  "source": { "source": "github", "repo": "rbhattarai/se-harness", "path": "plugins/se-harness-copilot" } }
 ```
 Read the target repo's CONTRIBUTING.md first — each has its own review/quality bar. Once
 merged, users install with zero setup: `copilot plugin install se-harness-copilot`.
+(The Claude-side equivalent is covered in [`setup-guide-claude.md`](./setup-guide-claude.md).)

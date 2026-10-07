@@ -11,7 +11,22 @@ report all drift and stop.
 
 ## Step 0 — Guard
 `.harness/profile.yaml` and `.harness/agentstack.lock` must exist (run `/harness-init`, then
-`/harness-bootstrap`, first).
+`/harness-bootstrap`, first) — for the per-repo path below. If neither exists in the current
+directory but `workspace.yaml` or `repos.txt` does, go to Step 0a instead; otherwise tell the
+user to run `/harness-init` and stop.
+
+### Step 0a — Workspace-root sync
+1. Ask once (AskUserQuestion): sync **every** bootstrapped unit (has its own
+   `.harness/profile.yaml` + `.harness/agentstack.lock`), **specific units** (name them), or
+   let you **suggest** units — propose any unit with no `syncs:` history yet, or whose most
+   recent `syncs:` entry predates its most recent commit by a wide margin (stale), and confirm
+   the proposed list before proceeding.
+2. Skip and report any listed unit that isn't bootstrapped yet (not a guard failure for the
+   whole run — just that unit, same as `/harness-bootstrap` Step 0's handling).
+3. For each chosen unit, in order: `cd` into it and run Steps 1-4 of this same command,
+   directly, same "continue the flow yourself" approach as `/harness-init` Step 1b.
+4. Report one consolidated table across all processed units — unit | drift found (axes) |
+   applied | skipped — in addition to each unit's own Step 5 report.
 
 ## Step 1 — Collect drift across four axes
 
@@ -50,7 +65,7 @@ that in one line and stop — no ceremony, no empty tables.
 2. Org changes → regenerate `.harness/org-rules.txt`.
 3. Component installs/removals → same mechanics as `/harness-bootstrap` Step 3 (CLI with
    `pending-manual` fallback; confirm before running any third-party CLI install).
-4. Re-render AGENTS.md inner blocks from the updated profile and splice:
+4. Re-render AGENTS.md/CLAUDE.md inner blocks from the updated profile and splice:
    `bash tools/harness/render-block.sh <target> <block-file>` — also when only
    template drift (axis C) triggered it.
 5. `.mcp.json`: merge any new server entries; never remove servers the user added by hand.

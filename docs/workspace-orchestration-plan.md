@@ -1,8 +1,8 @@
 # Workspace-Level Harness: Adaptive Topology and Agentic Orchestration Plan
 
-> Design doc for the workspace-orchestration work tracked in the original brainstorm notes A7/A8. Moved here
+> Design doc for the workspace-orchestration work tracked in `brainstorm.md` A7/A8. Moved here
 > from a personal working file once it started driving real implementation (phase 1 landed in
-> commit `dd17e81`). Status markers below follow the original brainstorm's convention.
+> commit `dd17e81`). Status markers below follow `brainstorm.md`'s convention.
 
 **Status**: ✅ **All 9 phases implemented.** One-line-each summary:
 
@@ -31,7 +31,7 @@
    workspace-orchestrator runs a combined check (compose + cross-repo contract-check +
    spanning e2e) before `passed`, putting a contradicted row back to `blocked`.
 9. Documentation/regression pass: modulith + hybrid worked examples
-   (setup guide, Part 3a),
+   ([setup guide Part 3a](./setup-guide-claude.md#part-3a--example-c-modulith-and-hybrid)),
    the demo walkthrough revised to show the actual workspace-plan/orchestrator/integration
    behavior on its real cross-unit goal, and the §13 acceptance criteria below re-audited
    against evidence (two honest ⚠️ partials carried to §14, not silently claimed done).
@@ -47,14 +47,15 @@ surfaced: `/harness-init` Step 3's mono-repo detection relied on a fixed list of
 workspace-tool markers (`nx.json`, `turbo.json`, ...) and had no signal for "multiple sibling
 directories, each its own independent build manifest, no root aggregator" — a legitimate,
 common mono-repo shape that list didn't cover. Fixed in `harness-init.md` Step 3 (now checks
-both signals, same confirm-before-write discipline either way); see the original brainstorm's A6
+both signals, same confirm-before-write discipline either way); see `brainstorm.md`'s A6
 section for the fuller note. Full walkthrough: `se-harness-setup.md` in the finance-portal repo.
 
 **Real-world validation (2026-10-06, FISMA/Copilot, a 20-repo multi-repo product)**: a second
-live trial, on Copilot CLI and genuinely multi-repo (20
+live trial, this time on Copilot CLI instead of Claude Code, and genuinely multi-repo (20
 separately-cloned repos) rather than mono-repo. Two real gaps surfaced, both in
 `/harness-init`'s workspace-root path, both fixed in `harness-init.md`:
-1. Step 1a invoked a bare `tools/harness/workspace-clone.sh` — valid only once scripts are
+1. Step 1a invoked `${CLAUDE_PLUGIN_ROOT}/scripts/workspace-clone.sh`, which the Copilot build
+   step rewrites to a bare `tools/harness/workspace-clone.sh` — valid only once scripts are
    vendored into the current directory, which nothing did before a brand-new workspace root's
    first command. Fixed with Step 0a: check the path resolves before using it; if not, vendor
    from the Copilot/VS Code plugin cache (`~/.vscode/agent-plugins/<host>/<org>/<repo>/...` —
@@ -102,7 +103,8 @@ This revision folds in six changes from a review against the se-harness codebase
    ("a single repo should not need workspace configuration just to use the existing workflow")
    true in practice, not just in intent.
 6. **§12 — phases land as independently reviewable increments** against this repo's actual
-   contribution model: edit `plugins/se-harness-copilot/` directly, pass the test suite
+   contribution model: edit `plugins/se-harness/` (the Claude-first source), regenerate
+   `plugins/se-harness-copilot/` via `build-copilot-plugin.sh`, pass the test suite
    (`tests/run-tests.sh`), one phase per PR. No phase ships as one large orchestrator-subsystem drop.
 
 A smaller, incidental fix: §3's example used `version: 1` for what is actually a second schema
@@ -147,7 +149,7 @@ preserving clear boundaries between workspace-wide decisions and repo-local work
 ## 3. Workspace model
 
 **This extends `workspace.yaml`; it does not replace it.** The file already exists today, is
-already documented (`docs/setup-guide-copilot.md` Parts 2-4), and is
+already documented (`docs/setup-guide-copilot.md` / `setup-guide-claude.md` Parts 2-4), and is
 already read literally by `scripts/contract-check.sh` in its current shape: `workspace:`
 (name/topology/layout), a flat `units:` list (`name` + `path` or `repo` + `stack`), and
 `contracts:` (name/file/provider/consumers). None of that moves or gets renamed.
@@ -218,7 +220,7 @@ This example illustrates the concepts, not a finalized schema. The design should
 se-harness profiles, lockfiles, generated-file conventions, and migration patterns where possible.
 The manifest must not contain credentials.
 
-> **Implemented in phase 1** (`templates/workspace.yaml`, `plugins/se-harness-copilot/scripts/
+> **Implemented in phase 1** (`templates/workspace.yaml`, `plugins/se-harness/scripts/
 > workspace-validate.sh`): the `schemaVersion`/`components`/`relationships` keys above, and a
 > validator enforcing uniqueness, boundary-type/path validity, and the evidence requirement below.
 
@@ -268,7 +270,7 @@ Support both supplied repositories and existing local child directories.
 ### 4.2 Acquire repositories safely — opt-in, confirmed per repo
 
 Cloning is **off by default**. se-harness's existing posture for multi-repo setup is that the
-human clones side-by-side themselves (`docs/setup-guide-copilot.md` Part
+human clones side-by-side themselves (`docs/setup-guide-copilot.md`/`setup-guide-claude.md` Part
 2) — nothing in the framework touches another repo's working tree unprompted. Automated cloning
 is an explicit opt-in that mirrors how `/harness-bootstrap` already treats every installable
 component ("composable, opt-in — users cherry-pick; never install everything"):
@@ -515,7 +517,7 @@ adapter can translate the plan into the agent format and capabilities available 
 At runtime, detect or configure whether the client supports agent definitions, parallel
 delegation, shared task state, direct agent messaging, and cross-repo workspaces. If a capability
 is missing, use a sequential or user-mediated handoff while preserving the same tasks and
-evidence. This is not hypothetical: Copilot CLI and VS Code already diverge on hook semantics
+evidence. This is not hypothetical: Claude Code and Copilot CLI already diverge on hook semantics
 today (`PreToolUse` deny behaves differently across Copilot CLI/coding-agent vs. VS Code, per
 `docs/setup-guide-copilot.md` Part 6) — the adapter layer generalizes a gap that already has to be
 worked around. Do not promise autonomous multi-agent coordination just because agent files exist.
@@ -529,7 +531,7 @@ Scope-aware scanning, landed as its own increment after the main 9 phases:
   present; otherwise nothing changed.
 - ✅ At a workspace root, scan workspace configuration and each declared repo/component;
   report shared and local findings separately. New script
-  `plugins/se-harness-copilot/scripts/workspace-scan-evidence.sh`: resolves every declared unit's
+  `plugins/se-harness/scripts/workspace-scan-evidence.sh`: resolves every declared unit's
   path (both `path:` — including nested mono-repo paths — and `repo:`'s sibling-clone
   convention), runs `scan-evidence.sh` once per unit that's actually bootstrapped, and
   reports `NOT-BOOTSTRAPPED`/`NOT-CLONED` for the rest rather than guessing. Step 0a-4 then
@@ -574,20 +576,21 @@ case, and the no-manifest-at-all error path).
 
 ## 12. Suggested implementation phases
 
-Each phase lands as its own reviewable increment against `plugins/se-harness-copilot/`
+Each phase lands as its own reviewable increment against `plugins/se-harness/` (the Claude-first
+source of truth), regenerated into `plugins/se-harness-copilot/` via `build-copilot-plugin.sh`,
 and gated on `tests/run-tests.sh` passing — this repo's existing contribution model
-(`docs/setup-guide-copilot.md` Part 10), not a new process. No phase ships
+(`docs/setup-guide-claude.md`/`setup-guide-copilot.md` Part 10), not a new process. No phase ships
 as one large orchestrator-subsystem drop.
 
 1. ✅ **Workspace model** (additive) — IMPLEMENTED, commit `dd17e81`: extended
    `templates/workspace.yaml` with the optional `schemaVersion`/`components`/`relationships` keys;
    `contract-check.sh` and every existing consumer keep working unchanged against
-   `units:`/`contracts:`. `plugins/se-harness-copilot/scripts/workspace-validate.sh` validates the new
+   `units:`/`contracts:`. `plugins/se-harness/scripts/workspace-validate.sh` validates the new
    sections (no-op on a manifest with no `schemaVersion`); covered by `tests/run-tests.sh`,
    including a regression proving `contract-check.sh`'s behavior is unaffected.
 2. ✅ **Discovery and initialization** — IMPLEMENTED: `/harness-init` Step 1 now detects
    whether it's running inside a repo (unchanged path) or at a candidate workspace root
-   (`repos.txt`-driven bootstrap, Step 1a); `plugins/se-harness-copilot/scripts/workspace-clone.sh`
+   (`repos.txt`-driven bootstrap, Step 1a); `plugins/se-harness/scripts/workspace-clone.sh`
    does the opt-in, plan-then-confirm, never-overwrite cloning (§4.2). Step 3 (topology) now
    asks explicitly before concluding `modulith` (directory structure is a clue, never a silent
    conclusion) and proposes `hybrid` when mono-repo/modulith structure and multi-repo
@@ -631,7 +634,7 @@ as one large orchestrator-subsystem drop.
    across runtimes (§9) — it never claims a row is in progress if it can't actually act on it,
    falling back to the phase-5 handoff instead. It never bypasses a repo's own PR/deploy gates.
 7. ✅ **Runtime adapters** — IMPLEMENTED: `workspace-orchestrator.md` checks per-surface
-   cross-repo capability *before* attempting a sibling-repo row (
+   cross-repo capability *before* attempting a sibling-repo row (Claude Code CLI/desktop and
    Copilot CLI: full local FS access; Copilot coding agent: never, single-repo sandbox by
    design; VS Code Copilot Chat: conditional on the open workspace, checked with
    `[ -d <sibling-path> ]`) and falls back to the phase-5 manual handoff when it can't, instead
@@ -650,7 +653,7 @@ as one large orchestrator-subsystem drop.
    to blocked, never an implicit pass). `/harness-goal` steps 6/8 point at the same combined
    compose rather than each writing a narrower, repo-only check.
 9. ✅ **Documentation and regression** — IMPLEMENTED: added
-   setup guide Part 3a
+   [setup guide Part 3a](./setup-guide-claude.md#part-3a--example-c-modulith-and-hybrid)
    (modulith + hybrid worked walkthroughs — the two topologies that had schema/detection
    support since phase 2 but no worked example anywhere). Corrected Part 3.4's stale
    "worktree fan-out across repos" claim (worktrees only ever worked within one repo;
@@ -678,7 +681,7 @@ as one large orchestrator-subsystem drop.
   hybrid structures.** `templates/workspace.yaml`'s `topology:` comment lists all five;
   `/harness-init` Step 3 detects/confirms each explicitly (modulith via a direct question,
   hybrid via the combined confirmation); worked through in
-  setup guide Part 3a.
+  [setup guide Part 3a](./setup-guide-claude.md#part-3a--example-c-modulith-and-hybrid).
 - ✅ **Topology and component relationships are evidence-backed suggestions confirmed by the
   user where needed; a relationship with no `evidence` field is never written.**
   `workspace-validate.sh` rejects an evidence-less relationship row (tested); Step 3 instructs
@@ -725,7 +728,8 @@ as one large orchestrator-subsystem drop.
 - Exact `evidence:` field shape for `relationships:` — a single path/URL, or a richer
   `{source, excerpt, confirmed_by, date}` structure (leaning toward the latter, to match how
   wiki-ingest already records provenance).
-- Which agent runtimes are supported initially (Copilot CLI first) and the shared orchestration contract for Copilot CLI's
+- Which agent runtimes are supported initially (Claude Code first, per the rest of this
+  framework's dual-publish order) and the shared orchestration contract for Copilot CLI's
   different hook/agent-messaging capabilities.
 - Whether agent definitions live at workspace level, in repos, or both, based on client discovery
   rules.
@@ -744,5 +748,5 @@ as one large orchestrator-subsystem drop.
   works rows sequentially regardless of what the dependency graph would allow. Building real
   parallelism means either spawning concurrent sessions (hits the same nested-dispatch
   reliability question phase 6 declined to assume — §9) or a job-queue-style external
-  coordinator (Multica-shaped, already flagged as v2+ infrastructure in the original brainstorm notes B5/B8).
+  coordinator (Multica-shaped, already flagged as v2+ infrastructure in `brainstorm.md` B5/B8).
   Not pursued here; sequential-but-correct was the acceptance bar for phases 5-8.

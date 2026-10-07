@@ -21,6 +21,19 @@ jobs:
           TESTS_COUNT_FILE=/tmp/tests-count bash tests/run-tests.sh
           echo "count=$(cat /tmp/tests-count)" >> "$GITHUB_OUTPUT"
 
+      - name: Generated Copilot plugin is fresh
+        run: |
+          bash plugins/se-harness/scripts/build-copilot-plugin.sh
+          git diff --exit-code -- plugins/se-harness-copilot .github/plugin
+
+      - name: Install Claude Code CLI
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Validate plugin manifests (strict)
+        run: |
+          claude plugin validate . --strict
+          claude plugin validate ./plugins/se-harness --strict
+
   tests-badge:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: test

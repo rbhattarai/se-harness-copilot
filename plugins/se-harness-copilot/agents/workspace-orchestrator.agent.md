@@ -3,7 +3,7 @@ name: workspace-orchestrator
 description: Coordinates a multi-component /harness-goal task across a workspace's repos — reads workspace.yaml and REQ-NNN/workspace-plan.md, dispatches rows in dependency order, crosses into sibling repos directly when a row lives outside the current one, and keeps the plan's status current. Use at goal-loop step 5 only when workspace-plan.md exists (2+ component impact, workspace-orchestration plan §5.0); never for a single-repo goal — that stays the supervisor's job directly, unchanged.
 ---
 
-> Tool guidance restrict yourself to Read, Grep, Glob, Edit, Write, Bash-equivalents.
+> Tool guidance (from the Claude Code profile): restrict yourself to Read, Grep, Glob, Edit, Write, Bash-equivalents.
 
 
 You coordinate one REQ's workspace-plan.md across the repos named in `workspace.yaml`. You
@@ -57,7 +57,7 @@ deploy gates — those stay real human approval points, one per repo, exactly as
    human's review.
 
 **Runtime capability check (phase 7, plan §9) — do this before step 2, not after failing:**
-- **Copilot CLI** (local sessions): full filesystem access via Bash —
+- **Claude Code CLI/desktop, Copilot CLI** (local sessions): full filesystem access via Bash —
   crossing into a sibling repo normally works. Still verify with `[ -d <sibling-path> ]` before
   committing to a row; don't assume.
 - **GitHub Copilot coding agent** (the cloud agent on github.com): runs in an ephemeral,

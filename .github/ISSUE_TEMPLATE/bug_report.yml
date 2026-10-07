@@ -5,26 +5,27 @@ body:
   - type: dropdown
     id: ecosystem
     attributes:
-      label: Component
-      description: What were you using?
+      label: Ecosystem
+      description: Which plugin were you using?
       options:
+        - se-harness (Claude Code)
         - se-harness-copilot (GitHub Copilot CLI)
-        - Marketplace itself
+        - Both / marketplace itself
     validations:
       required: true
   - type: input
     id: version
     attributes:
       label: Plugin version
-      description: From `copilot plugin list`, e.g. 0.1.1
+      description: From `/plugin` (Claude Code) or `copilot plugin list`, e.g. 0.1.1
       placeholder: "0.1.1"
     validations:
       required: true
   - type: input
     id: host-version
     attributes:
-      label: Copilot CLI version and OS
-      placeholder: "Copilot CLI 1.x on Windows 11"
+      label: Claude Code / Copilot CLI version and OS
+      placeholder: "Claude Code 2.1.x on Windows 11"
     validations:
       required: true
   - type: textarea

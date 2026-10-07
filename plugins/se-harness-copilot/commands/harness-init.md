@@ -1,5 +1,5 @@
 ---
-description: Bootstrap the AI harness for this project — interview (new) or detect+confirm (existing), then generate profile, env, memory scaffold, org rules, and AGENTS.md.
+description: Bootstrap the AI harness for this project — interview (new) or detect+confirm (existing), then generate profile, env, memory scaffold, org rules, and AGENTS.md/CLAUDE.md.
 argument-hint: [--update]
 ---
 
@@ -34,9 +34,9 @@ automatically. Check once, up front, instead of letting an arbitrary later step 
         - **Multiple matches** (e.g. both a public and an internal-mirror install) → list them
           and ask the user which one via AskUserQuestion — never guess.
         - **None** → try (b).
-     b. A sibling framework checkout at `../se-harness-copilot/` (the side-by-side clone the setup
+     b. A sibling framework checkout at `../se-harness/` (the side-by-side clone the setup
         guides document) → if found, vendor
-        `../se-harness-copilot/plugins/se-harness-copilot/scripts/*.sh` the same way; else try (c).
+        `../se-harness/plugins/se-harness-copilot/scripts/*.sh` the same way; else try (c).
      c. Neither found → stop. Tell the user plainly: the scripts this command needs aren't
         vendored here and couldn't be found automatically. Give both options, let them pick:
         (a) check their own `~/.vscode/agent-plugins/` for the install themselves (path layout
@@ -200,7 +200,7 @@ Ask only what wasn't detected and isn't already inherited. Cover:
 4. **Non-code sources** (workspace-scoped by default): Jira project key, Confluence space keys,
    SharePoint sites (each optional — record "" when not used).
 
-## Step 5 — Organization context (required before AGENTS.md is finalized)
+## Step 5 — Organization context (required before AGENTS.md/CLAUDE.md is finalized)
 
 **Workspace inheritance first** (same lookup and write-back pattern as Step 4): if
 `shared.org` in the workspace manifest already has `internal_libraries`/`preferred_libraries`/
@@ -250,7 +250,7 @@ the user isn't left wondering why nothing got indexed yet.
 ## Step 7 — Generate artifacts
 Order matters; use the exact mechanics below.
 
-1. **`.harness/profile.yaml`** — render from `../se-harness-copilot/templates/profile.yaml`
+1. **`.harness/profile.yaml`** — render from `../se-harness/templates/profile.yaml`
    with all interview answers. Never put secrets here.
 2. **`.env.harness`** — copy `templates/env.harness.example` **only if `.env.harness` doesn't
    already exist**; leave existing files untouched. Tell the user which vars to fill for the
@@ -268,15 +268,16 @@ Order matters; use the exact mechanics below.
    ```
 5. **`.harness/org-rules.txt`** — one line per banned pair from the org answers:
    `banned:<never>:use <use> (<reason>)`. Empty file if none (the org-validate hook no-ops).
-6. **AGENTS.md** — render the *inner* content of `templates/AGENTS.md.tmpl` (fill every
-   `{{placeholder}}` from the profile; drop sections whose data is empty; **do not include the
-   marker lines** — the splice script owns them). Write the rendered block to a temp file, then:
+6. **AGENTS.md and CLAUDE.md** — render the *inner* content of
+   `templates/AGENTS.md.tmpl` / `templates/CLAUDE.md.tmpl` (fill every `{{placeholder}}` from
+   the profile; drop sections whose data is empty; **do not include the marker lines** — the
+   splice script owns them). Write each rendered block to a temp file, then:
    ```
    bash tools/harness/render-block.sh AGENTS.md <temp-agents-block>
+   bash tools/harness/render-block.sh CLAUDE.md <temp-claude-block>
    ```
-   This is the ONLY way to touch this file — never edit it directly, so hand-written
-   content outside the markers survives. (Copilot reads `AGENTS.md` natively, so no
-   separate instructions file is needed.)
+   This is the ONLY way to touch these files — never edit them directly, so hand-written
+   content outside the markers survives.
 7. **`.harness/agentstack.lock`** — JSON: `se_harness` version (from plugin.json),
    `initialized`/`updated` ISO dates, `profile` echo of key choices (methodology, stack,
    cloud, topology, `memory.structural_driver`), `components: {}` (Phase 3 fills this).
@@ -287,4 +288,4 @@ Summarize what was created vs. skipped (already existed). Then:
   code" (Phase 2 — if not yet available, say so and note the profile can be completed manually).
 - Both → next: Phase 3 bootstrap (methodology + stack plugins + the structural-memory driver
   chosen in Step 6, if any), then `/harness-goal <goal>`.
-- Remind: fill `.env.harness`, commit `.harness/` + AGENTS.md, DON'T commit `.env.harness`.
+- Remind: fill `.env.harness`, commit `.harness/` + AGENTS.md/CLAUDE.md, DON'T commit `.env.harness`.

@@ -3,7 +3,7 @@ name: db-engineer
 description: Schema changes, migrations, and query work for an approved requirement. Use during goal-loop step 5 when the design touches the data model.
 ---
 
-> Tool guidance restrict yourself to Read, Grep, Glob, Edit, Write, Bash-equivalents.
+> Tool guidance (from the Claude Code profile): restrict yourself to Read, Grep, Glob, Edit, Write, Bash-equivalents.
 
 
 You own data-model changes for one task from the design.

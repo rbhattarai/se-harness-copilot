@@ -58,7 +58,7 @@ winget install charmbracelet.vhs   # or: scoop install vhs (installs ttyd + ffmp
 vhs docs/demo/demo.tape
 ```
 
-`docs/demo/demo.tape` in this folder types the storyboard commands into a live Copilot CLI
+`docs/demo/demo.tape` in this folder types the storyboard commands into a live Claude Code
 session. Interactive agent output varies run to run, so adjust the `Sleep` durations to
 your machine's pacing, or use vhs only for scenes 1–2 and ScreenToGif for the gate scene.
 
@@ -128,7 +128,7 @@ instead; everything else is identical.
 
 ```bash
 cd loan-webapp
-copilot
+claude
 > /harness-init
 ```
 
@@ -136,7 +136,7 @@ Because the repo exists, `/harness-scan` runs first: the evidence collector dete
 Node + TypeScript + Express 5 + EJS + Docker and shows you the findings to **confirm**
 (low-confidence detections become questions, never silent guesses). You're interviewed
 only for what can't be detected — methodology, environments, org context. Result per
-unit: `AGENTS.md` (generated block), `.harness/` (profile, memory seeds),
+unit: `AGENTS.md` + `CLAUDE.md` (generated blocks), `.harness/` (profile, memory seeds),
 gitignored `.env.harness`.
 
 Repeat in `lending-webapp`. The manifest is auto-discovered (the hook looks for
@@ -149,13 +149,13 @@ tooling (opt-in, recorded in the lockfile).
 ## Step 3 — see the contract gate fire
 
 Make a breaking change to the shared loan shape — e.g. edit `contracts/loan-record.md`
-to add a required `rejectionReason` field. Inside a Copilot CLI session the PreToolUse hook
+to add a required `rejectionReason` field. Inside a Claude session the PreToolUse hook
 then blocks `git push` / `gh pr create` automatically. To run the same check standalone,
-point at the script in your se-harness-copilot clone (or installed plugin) from the demo repo
+point at the script in your se-harness clone (or installed plugin) from the demo repo
 root:
 
 ```bash
-bash /path/to/se-harness-copilot/plugins/se-harness-copilot/scripts/contract-check.sh --
+bash /path/to/se-harness/plugins/se-harness/scripts/contract-check.sh --
 ```
 
 Exit 2, stderr names the blast radius:
@@ -173,7 +173,7 @@ The flagship demo goal (it genuinely spans both units + the contract):
 
 ```
 cd lending-webapp
-copilot
+claude
 > /harness-goal "When a lender rejects a loan, they must give a rejection reason,
   and the borrower must see it on the loan-webapp dashboard"
 ```

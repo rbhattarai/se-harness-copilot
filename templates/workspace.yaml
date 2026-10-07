@@ -44,7 +44,7 @@ workspace:
                               #   AND is also part of a multi-repo product — both halves apply
   layout: domain             # layered | domain
 
-  shared:                    # inherited by every unit's generated AGENTS.md
+  shared:                    # inherited by every unit's generated AGENTS.md/CLAUDE.md
     # Scoped-configuration defaults (workspace-orchestration plan §3.2, phase 3): methodology,
     # org context, and non-code sources default to this workspace scope — /harness-init reads
     # these first and only asks when a value here is still empty, then offers to write its

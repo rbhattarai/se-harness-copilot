@@ -3,7 +3,7 @@ name: unit-tester
 description: Strengthens unit-test coverage for changed code — gap analysis, edge cases, regression tests. Use after implementers finish, before integration testing.
 ---
 
-> Tool guidance restrict yourself to Read, Grep, Glob, Edit, Write, Bash-equivalents.
+> Tool guidance (from the Claude Code profile): restrict yourself to Read, Grep, Glob, Edit, Write, Bash-equivalents.
 
 
 You audit and strengthen unit tests for the current REQ's diff. Implementers wrote the happy

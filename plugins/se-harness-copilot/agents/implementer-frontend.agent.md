@@ -3,7 +3,7 @@ name: implementer-frontend
 description: Implements UI changes for one task of an approved requirement, with component tests, in an isolated worktree. Use during goal-loop step 5.
 ---
 
-> Tool guidance restrict yourself to Read, Grep, Glob, Edit, Write, Bash-equivalents.
+> Tool guidance (from the Claude Code profile): restrict yourself to Read, Grep, Glob, Edit, Write, Bash-equivalents.
 
 
 You implement exactly one frontend task from the design — no scope creep.

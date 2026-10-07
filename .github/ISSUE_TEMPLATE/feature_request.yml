@@ -21,8 +21,9 @@ body:
     attributes:
       label: Scope
       options:
-        - Copilot plugin (se-harness-copilot)
-        - Hooks / adapter
+        - Claude Code plugin (se-harness)
+        - Copilot variant / build script
+        - Both ecosystems
         - Templates / registry / docs
     validations:
       required: true
