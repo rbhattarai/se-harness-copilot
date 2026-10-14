@@ -8,7 +8,7 @@ uses **GitHub Copilot**. Written for a first-time user.
 **se-harness** wraps an AI-agentic SDLC harness around any software project — new or
 existing, any stack. Installing it gives your Copilot sessions:
 
-- **9 commands** — `harness-init` (intake interview → generates AGENTS.md,
+- **14 commands** — `harness-init` (intake interview → generates AGENTS.md,
   `.harness/profile.yaml`, memory seeds), `harness-scan` (brownfield stack/org detection),
   `harness-bootstrap` (recommends & installs companion plugins/MCP servers),
   `harness-goal` (the delivery loop: grill → requirement → stories → implement → test →
@@ -17,12 +17,17 @@ existing, any stack. Installing it gives your Copilot sessions:
   Graphify structural-memory indexes, per-repo and workspace-merged), `harness-methodology-openspec`
   (install/init OpenSpec where chosen — `harness-goal` drives its actual propose/archive lifecycle),
   `harness-mem-wiki` (synthesize Jira/Confluence/SharePoint/NAS docs/NAS video into the
-  workspace-level domain wiki `harness-goal` queries).
+  workspace-level domain wiki `harness-goal` queries), `harness-mem-codebase-memory` /
+  `harness-mem-codegraph` (install, register, index and refresh those structural-memory drivers per
+  repo), `harness-mem-sourcegraph` (connect/verify Sourcegraph as the structural-memory driver),
+  `harness-conventions` (capture per-area coding conventions and internal-library catalogs as docs
+  the agents follow; optional export to `.github/instructions/`), `harness-update` (update the
+  plugin, then migrate the project's `.harness/` data).
 - **12 SDLC agents** — architect, story-writer, backend/frontend implementers, db-engineer,
   unit/integration testers, e2e planner/generator/healer, release-manager, and a
   workspace-orchestrator for multi-component requirements (used only when one applies).
-- **17 skills** — stack-detector, requirement-grill, memory-keeper, wiki-ingest/query/lint,
-  context-injector conventions, coding-discipline, plus the nine commands as CLI skills.
+- **22 skills** — stack-detector, requirement-grill, memory-keeper, wiki-ingest/query/lint,
+  context-injector conventions, coding-discipline, plus the fourteen commands as CLI skills.
 - **Enforcement hooks** — a human-in-the-loop gate that denies PR/push/deploy until a
   requirement is `approved`, org-rules validation on edits, contract-impact checking across
   repos, and automatic memory logging of commits/PRs.
@@ -431,6 +436,20 @@ content outside the markers is never touched.
   feature is optional — AGENTS.md is already the cross-tool source of truth.
 
 ---
+
+## Observability (Langfuse) — Copilot CLI
+There is **no Langfuse plugin for Copilot**. Copilot exports OpenTelemetry natively and Langfuse accepts it at
+`<your Langfuse URL>/api/public/otel` (HTTP; no gRPC). Put `LANGFUSE_PUBLIC_KEY` / `LANGFUSE_SECRET_KEY` in the gitignored
+`.env.harness` (create them in Langfuse: project settings → API keys), record the host with
+`/harness-bootstrap --reconfigure observability`, then start Copilot from a shell that ran:
+
+```bash
+eval "$(bash tools/harness/langfuse-otel-env.sh)"          # --capture-content also stores prompts/responses; --host URL overrides the recorded host
+```
+
+That exports `COPILOT_OTEL_ENABLED=true`, `OTEL_EXPORTER_OTLP_ENDPOINT` and an `OTEL_EXPORTER_OTLP_HEADERS` Basic-auth header
+(base64 of the two keys — treat it as a secret). Content capture is off by default because it stores prompts, responses and
+tool arguments in Langfuse. Details: [Langfuse's Copilot guide](https://langfuse.com/integrations/developer-tools/github-copilot).
 
 ## Part 9 — Example: single-repo project (the short path)
 

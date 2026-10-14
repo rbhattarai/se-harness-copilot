@@ -3,12 +3,13 @@
 # agency-agents compiler pattern (B6): one shared frontmatter parser, thin per-client
 # converters, deterministic output (no timestamps), clean-before-regenerate.
 #
-# usage: export-agents.sh <copilot> [target-root]   (default target-root: .)
+# usage: export-agents.sh <copilot|cursor> [target-root]   (default target-root: .)
 #   copilot → <root>/.github/agents/<name>.md   (agent profiles — B10; AGENTS.md is
 #             already read natively by Copilot, so instructions need no conversion)
+#   cursor  → <root>/.cursor/rules/<name>.mdc   (rule files; no subagent concept — B3 caveat)
 
 set -eu
-CLIENT="${1:?usage: export-agents.sh <copilot> [target-root]}"
+CLIENT="${1:?usage: export-agents.sh <copilot|cursor> [target-root]}"
 ROOT="${2:-.}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 AGENTS_DIR="$SCRIPT_DIR/../agents"
@@ -19,7 +20,8 @@ get_body()  { awk 'BEGIN{n=0} /^---$/{n++; next} n>=2{print}' "$1"; }
 
 case "$CLIENT" in
   copilot) OUT="$ROOT/.github/agents"; EXT="md" ;;
-  *) echo "unknown client: $CLIENT (copilot)." >&2; exit 1 ;;
+  cursor)  OUT="$ROOT/.cursor/rules";  EXT="mdc" ;;
+  *) echo "unknown client: $CLIENT (copilot|cursor). codex needs no export — it reads AGENTS.md natively." >&2; exit 1 ;;
 esac
 
 mkdir -p "$OUT"
@@ -34,10 +36,18 @@ for f in "$AGENTS_DIR"/*.md; do
   case "$CLIENT" in
     copilot)
       # Copilot agent profile: YAML frontmatter (name, description) + markdown body (≤30k chars).
-      # Tool names differ across clients — carried as guidance in the body instead of frontmatter.
+      # Tool names don't map 1:1 across clients — carried as guidance in the body instead of frontmatter.
       {
         printf -- '---\nname: %s\ndescription: %s\n---\n\n' "$name" "$desc"
-        [ -n "$tools" ] && printf '> Tool guidance: restrict yourself to %s-equivalents.\n\n' "$tools"
+        [ -n "$tools" ] && printf '> Tool guidance: restrict to %s-equivalents.\n\n' "$tools"
+        get_body "$f"
+      } > "$target"
+      ;;
+    cursor)
+      # Cursor .mdc rule: description/globs/alwaysApply frontmatter + body. Cursor has no
+      # subagent isolation — the rule activates contextually via its description (B3 caveat).
+      {
+        printf -- '---\ndescription: %s\nglobs: ""\nalwaysApply: false\n---\n\n' "$desc"
         get_body "$f"
       } > "$target"
       ;;

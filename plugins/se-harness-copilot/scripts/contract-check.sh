@@ -29,7 +29,13 @@ else
     CMD=$(printf '%s' "$INPUT" \
       | grep -oE '"command"[[:space:]]*:[[:space:]]*"(\\.|[^"\\])*"' | head -1 \
       | sed -E 's/^"command"[[:space:]]*:[[:space:]]*"//; s/"$//; s/\\"/"/g; s/\\\\/\\/g')
-    printf '%s' "$CMD" | grep -qE '(git push|gh pr create)' || exit 0
+    # shellcheck source=irreversible-cmd.sh
+    if [ -f "$(dirname "${BASH_SOURCE[0]}")/irreversible-cmd.sh" ]; then
+      . "$(dirname "${BASH_SOURCE[0]}")/irreversible-cmd.sh"
+    else    # vendored without the helper: original substring match, never fail open
+      is_irreversible() { IRR_KIND=push; printf '%s' "$1" | grep -qE '(git push|gh pr create)'; }
+    fi
+    is_irreversible "$CMD" && [ "$IRR_KIND" != deploy ] || exit 0
   fi
 fi
 

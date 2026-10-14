@@ -51,11 +51,15 @@ Either way, check `profile.yaml`'s `memory.structural_driver` (phase 4) first �
 driver was chosen at init, look for *that one* specifically rather than probing generically
 (per unit, at the workspace root). If it's still unset, fall back to checking for any
 available code-graph MCP server or the Graphify skill (CodeGraph / codebase-memory-mcp /
-Graphify) as before. Either way, if found, index and pull its architecture summary (Graphify:
+Graphify) as before. A driver that is chosen but not connected or not indexed gets pointed at its
+command (`/harness-mem-codebase-memory`, `/harness-mem-codegraph`), never fixed from here. Either way, if found, index and pull its architecture summary (Graphify:
 `graphify-out/GRAPH_REPORT.md` or `graphify query`) — richer structure, but the scan MUST
 work without it. If the driver is Graphify and `graphify-out/` is missing or looks stale next
 to recent commits, say so and point at `/harness-mem-graphify` to build/refresh it — don't run
-`graphify` commands yourself here, this command only ever reads what already exists.
+`graphify` commands yourself here, this command only ever reads what already exists. If the driver
+is Sourcegraph and its tools are connected, a read-only `list_repos` call confirms this repo is on the
+instance and `keyword_search` can corroborate cross-repo usage of an internal library; if it isn't
+connected, say so (`/harness-mem-sourcegraph verify`) and continue without it.
 
 ## Step 2 — Detect (stack-detector skill)
 Reason over the evidence per the **stack-detector** skill: usage beats listing; version-aware;
@@ -66,7 +70,8 @@ Produce the proposal table (field | proposed value | evidence | confidence) cove
 `project.topology` (+ units if mono-repo/modulith — same detection rules as `/harness-init`
 Step 3, including modulith candidates and evidenced `components:`/`relationships:` entries),
 `stack.*`, `devops.*`, `cloud`, and the full `org:` section (internal libraries, preferred
-libraries, conventions — explicit from configs AND implicit inferred from code).
+libraries, conventions — explicit from configs AND implicit inferred from code; `org.guardrails` is
+policy the user states, so never propose it).
 
 Re-scans can find **new or changed** cross-unit relationships since the last run (a new
 import, a new compose `depends_on`) — propose additions/removals the same evidence-required
@@ -116,6 +121,10 @@ to workspace scope. If a workspace manifest exists, compare this repo's current
 4. **AGENTS.md** — re-render the template inner blocks from the updated profile and
    splice via `bash tools/harness/render-block.sh <target> <block-file>`
    (never edit these files directly).
+   If it exits **3**, the generated block was hand-edited since the last render and was left
+   untouched (`<target>.seaa.proposed` holds the new version): show the user a diff of the two,
+   and ask keep-mine / take-new / merge. Only on take-new re-run with `--force` (the edited block
+   is saved to `<target>.seaa.bak`). Never pass `--force` without asking.
 5. **`.harness/agentstack.lock`** — set `updated` timestamp and append a `scans:` entry
    (date + one-line summary of what changed).
 
@@ -136,5 +145,6 @@ Report any units that were skipped (not ready) and any undeclared directories th
 not to add yet, so they're findable next run.
 
 Either way: flag anything deferred (low-confidence rows the user skipped) at the end so it's
-findable next run. Suggest follow-ups: `wiki-ingest` for any conventions URL; Phase 3 bootstrap
+findable next run. Suggest follow-ups: **`/harness-conventions`** (turns detected libraries and inferred
+conventions into scoped, enforced convention docs; scan itself never edits them); `wiki-ingest` for any conventions URL; Phase 3 bootstrap
 to install stack-matched plugins for newly detected tech.

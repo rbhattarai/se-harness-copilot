@@ -1,6 +1,6 @@
 ---
 name: harness-bootstrap
-description: Recommend and install the harness components matching this project's profile — methodology, stack plugins, MCP servers, observability — opt-in per item, recorded in the lockfile.
+description: Recommend and install the harness components matching this project's profile — methodology, stack plugins, MCP servers, observability — opt-in per item, recorded in the lockfile. `--reconfigure <topic>` revisits an earlier choice (observability, memory, methodology).
 ---
 
 
@@ -8,7 +8,8 @@ description: Recommend and install the harness components matching this project'
 
 Turn the profile into an installed harness. **Composable, opt-in** (the ECC lesson: users
 cherry-pick; never install everything). Read `--dry-run` from `$ARGUMENTS`: if present, produce
-the recommendation manifest and stop before installing anything.
+the recommendation manifest and stop before installing anything. `--reconfigure <topic>` in
+`$ARGUMENTS` → skip the manifest entirely and go to **Reconfigure mode** (after Step 0).
 
 ## Step 0 — Guard & workspace scope
 `.harness/profile.yaml` in the current directory → normal per-repo run, continue at Step 1,
@@ -34,9 +35,70 @@ is a **workspace root**, not a repo to bootstrap directly:
 Neither `.harness/profile.yaml` nor a workspace manifest/inventory present → tell the user to
 run `/harness-init` first and stop.
 
+## Reconfigure mode — `--reconfigure <topic>`
+Revisit a choice made earlier without re-running anything else. Topics: `observability`,
+`memory` (the structural-memory driver), `methodology`. No/unknown topic → list the three and
+stop. Only that topic's profile fields and components are touched — never the rest of the manifest.
+
+1. Run `bash tools/harness/decision-review.sh` and show the topic's row in words:
+   "**Currently:** Langfuse @ http://localhost:3000 — configured 2026-10-13" (or `declined`,
+   `deferred`, `unset`). If its detail says `.env.harness: missing …`, say what that means for the
+   surface in use (names only; never read or print a secret value): Copilot CLI needs those two
+   variables there.
+2. Ask (AskUserQuestion): **Keep it** / **Change it** (list the registry's alternatives, current one
+   marked) / **Turn it off** (`declined`) / **Decide later** (`deferred`). Keep → say so and stop.
+3. Change, by topic:
+   - **observability** → run **Observability setup** below with the new provider. If it replaces
+     an installed provider, say the old plugin stays installed (propose the removal command, never
+     run it).
+   - **memory** → write `memory.structural_driver` (and `shared.memory.structural_driver` if the
+     user wants the workspace default changed); Graphify → hand off to `/harness-mem-graphify`,
+     codebase-memory-mcp → `/harness-mem-codebase-memory`, CodeGraph → `/harness-mem-codegraph`,
+     Sourcegraph → `/harness-mem-sourcegraph connect` (also how to change the URL, endpoint or auth later), others → this
+     command's Step 3 install for that one driver.
+   - **methodology** → write `methodology` (a value that differs from the workspace default gets
+     the trailing "documented exception" comment); OpenSpec → hand off to
+     `/harness-methodology-openspec`. The choices are se-harness (built-in) / OpenSpec / Spec Kit /
+     BMAD. Remind that only se-harness (built-in) and OpenSpec are delegated to by
+     `/harness-goal`.
+4. At a workspace root (no `.harness/profile.yaml`, but `workspace.yaml`): change the `shared:`
+   value once, then list any unit whose own profile deviates (they keep theirs unless the user
+   says otherwise) — don't loop every unit.
+5. Re-render AGENTS.md blocks (Step 4 item 4, including the exit-3 hand-edit rule), then
+   record in the lockfile (Step 5) and report (Step 6). `--dry-run` → show what would change and stop.
+
+## Observability setup
+Shared by Step 2 and Reconfigure mode; `<p>` = the chosen entry in the registry's
+`observability.providers`. Pick the `copilot` branch of
+`<p>.surfaces` (a provider with `kind: plugin` or `manual` has no surfaces: use its own fields).
+
+1. **Host** (non-secret). Offer `<p>.host_default` first, then the `host_note` alternatives, then
+   "other URL". Self-hosted Langfuse is plain `http://localhost:3000` unless TLS sits in front of it —
+   don't "upgrade" it to https. Dash0 has no default (hosted): ask for its OTLP URL. Other: ask if needed.
+2. **Record the decision** in `.harness/profile.yaml` (and `shared.observability` if the user
+   agreed): `observability: {status: configured, provider: <p>, host: <host>, decided: <today>}`.
+3. **Set it up for this surface** — never ask for a key in chat, never put one in a committed file:
+   - **Copilot CLI, Langfuse** (`surfaces.copilot`): there is **no plugin** — Copilot exports
+     OpenTelemetry natively and Langfuse is an OTLP backend. Make sure `.env.harness` (the workspace
+     root's when the choice is shared, else this repo's; create it from the matching template if
+     missing) has empty `LANGFUSE_PUBLIC_KEY=` / `LANGFUSE_SECRET_KEY=` lines (append only, never
+     touch existing values) and tell the user to create the keys in Langfuse (project settings → API
+     keys) and fill them in themselves. Then tell them to start Copilot from a shell that ran
+     `eval "$(bash tools/harness/langfuse-otel-env.sh)"` (or put the printed lines in
+     their shell profile — warn that the header is the secret in base64). Offer
+     `--capture-content` separately and explain it is opt-in: it stores prompts, responses and tool
+     arguments in Langfuse. Record a component of kind `config` (status `installed` once they confirm
+     the variables are exported, else `pending-manual`).
+   - **Copilot CLI, Dash0**: no plugin exists and the OTLP wiring is unverified — record provider +
+     host, install nothing, `pending-manual`, and point at Dash0's docs.
+   - **Other**: install nothing.
+4. **Optional reachability check** (non-fatal): if `<p>.health_path` exists and the host is local
+   (`localhost`/`127.0.0.1`), offer `curl -s -o /dev/null -w "%{http_code}" <host><health_path>` —
+   200 means the server is up. Skip remote hosts unless the user opts in (it's a network call).
+5. 
 ## Step 1 — Build the recommendation manifest
 Read `.harness/profile.yaml` (guard: must exist — run `/harness-init` first) and
-`../se-harness-copilot/registry/recommendations.json`. Map profile → components:
+`registry/recommendations.json`. Map profile → components:
 
 - `methodology` → its entry (plugin or CLI install) — `se-harness` ("se-harness (built-in)" to
   the user) has a `kind: native` registry entry, nothing to install; skip it silently, no
@@ -45,7 +107,32 @@ Read `.harness/profile.yaml` (guard: must exist — run `/harness-init` first) a
   `note` so the user knows why nothing is recommended)
 - `cloud` → its plugins
 - `always` + `testing.e2e` → recommended for every project
-- `observability.choose_one` → ask which (or neither)
+- **domain wiki** (not a plugin) → if `workspace.yaml`'s `shared:` has any configured non-code
+  source (`jira_project`, `confluence_spaces`, `sharepoint_sites`, `nas_doc_paths`,
+  `nas_video_paths`) and the workspace wiki has no pages for it: add one row, "Build the domain
+  wiki from <sources> (`/harness-mem-wiki`)". **Not recommended by default and never run inline**
+  — it needs MCP credentials in the workspace `.env.harness`, can take long, and asks for
+  confirmation per source. If selected, don't run it; list it under "Next commands" in Step 6
+  with the sources named. No configured source → no row.
+- **conventions** (not a plugin — a harness setup step) → if the repo has source code and
+  `org.convention_docs` is empty, or any doc is `draft`/`stale`, add one row: "Capture coding
+  conventions + internal-library catalog (`/harness-conventions`)". Recommended by default.
+  Skip the row when every doc is `confirmed`.
+- `observability` → run `bash tools/harness/decision-review.sh` and read its
+  `observability` row (it resolves this repo's profile, then the workspace default). Never ask a
+  question that was already answered:
+  - `configured` → no question. Add that provider's `observability.providers.<provider>` entry to
+    the manifest, labeled "chosen earlier (<decided date>)", and say the choice can be changed
+    with `--reconfigure observability`.
+  - `declined` → skip silently; one line in the Step 6 report: "observability: declined on
+    <date> — `/harness-bootstrap --reconfigure observability` to change".
+  - `unset` or `deferred` → ask once via AskUserQuestion: **Langfuse** / **Dash0** / **Another
+    backend** / **Not yet** (records `deferred` — `/harness-sync` asks again) / **No thanks**
+    (records `declined` — never re-asked). Run **Observability setup** below for a provider; for
+    the last two just record the status in `profile.yaml`'s `observability:` block with today's
+    date. If a workspace manifest exists, offer once to write the answer to
+    `shared.observability` so every unit inherits it (same scoped-configuration rule as
+    `/harness-init`'s methodology choice).
 - `sources`: Jira/Confluence set → `atlassian`; GitHub remote detected → `github`;
   `org.conventions_url` on Figma-backed design orgs → `figma`
 - `memory.structural` → first check `profile.yaml`'s `memory.structural_driver` (and
@@ -53,38 +140,52 @@ Read `.harness/profile.yaml` (guard: must exist — run `/harness-init` first) a
   `/harness-init` Step 6 already recorded a non-null choice, skip the question entirely and
   add that one driver's install command straight to the manifest as `kind: cli`, labeled
   "chosen at init." Only if it's still `null`/unset, ask fresh: note the A7 bake-off; offer
-  codebase-memory-mcp's installer, one of the two unrelated "CodeGraph" projects
-  (codegraph-ai/CodeGraph or colbymchenry/codegraph — disambiguate by repo, not name), or
+  codebase-memory-mcp (`/harness-mem-codebase-memory`), one of the two unrelated "CodeGraph" projects
+  (codegraph-ai/CodeGraph or colbymchenry/codegraph — disambiguate by repo, not name;
+  `/harness-mem-codegraph`), or
   Graphify (Graphify-Labs/graphify — CLI + `/graphify` skill, not MCP-first: `uv tool install
-  graphifyy` then `graphify install --project`), or defer
+  graphifyy` then `graphify install --project`), **Sourcegraph** (remote MCP, Cloud or self-hosted —
+  see Step 3b — `/harness-mem-sourcegraph` asks the connection questions and records `memory.sourcegraph`), or defer
 
 Present as a table: **component | why (profile key that triggered it) | source | install method**.
 Never recommend a name not present in the registry file — gaps are stated, not improvised.
 
 ## Step 2 — User selection
 AskUserQuestion with multiSelect over the manifest (group: methodology / stack / cloud /
-core / observability / memory). Default-recommend the `always` group; everything else neutral.
+core / observability / memory / conventions). Default-recommend the `always` group and the conventions row; everything else neutral.
 
 ## Step 3 — Install (only selected items)
 For each selected component, by `kind`:
 - **plugin**: try the CLI first —
   `copilot plugin marketplace add <marketplace>` (third-party only) then
-  `copilot plugin install <plugin>@<marketplace>`. If the `copilot` CLI is unavailable in this
-  environment, print the exact commands for the user to run interactively and mark the item
-  `pending-manual` in the lockfile.
+  `copilot plugin install <plugin>`. If the `copilot` CLI is unavailable in this environment,
+  print the exact commands for the user to run and mark the item `pending-manual` in the lockfile.
 - **cli**: run the registry's `install` command verbatim (confirm with the user first — it
   executes third-party code). **Exception: the Graphify component.** Don't run its bare
   `uv tool install graphifyy` here — hand off to `/harness-mem-graphify` instead (confirm
   first, same as any third-party install). It owns the fuller gated sequence this step doesn't
   (Python/uv prerequisite checks, an org's private package index from
   `shared.package_index` if set, the first index build, and the lockfile record) — running
-  the bare command here would both duplicate and undercut it. **Exception: the OpenSpec
+  the bare command here would both duplicate and undercut it. **Exception: codebase-memory-mcp and
+  CodeGraph.** Same reasoning — hand off to `/harness-mem-codebase-memory` / `/harness-mem-codegraph`
+  (confirm first): they own the install-with-confirmation, explicit client registration (the
+  installers otherwise auto-configure many clients), per-repo indexing and refresh, and CodeGraph's
+  variant and telemetry choices. **Exception: the OpenSpec
   component.** Same reasoning — hand off to `/harness-methodology-openspec` instead of the bare
   `npm install -g` command; it owns the gated install-plus-`openspec init` sequence and the
   lockfile record, and it's what `/harness-goal` later expects to find already set up.
 - **mcp**: render the needed entries from `templates/mcp.json.tmpl` into the project's
   `.mcp.json` (merge — never clobber existing servers; secrets stay `${VAR}` references
   to `.env.harness`).
+
+## Step 3b — Sourcegraph (only if `memory.structural_driver` is sourcegraph)
+Nothing is installed and nothing is indexed by se-harness: Sourcegraph hosts the MCP server and the
+index. Hand off to **`/harness-mem-sourcegraph`** (confirm first, same as the Graphify hand-off) — it
+owns the connection questions, the `.mcp.json` / user-scope / Copilot wiring, the verify step and the
+per-repo coverage report. In a workspace run it once for the whole workspace (the instance is
+org-wide; it asks about registration scope once, not per unit). Record the component in each unit's
+lockfile as `kind: mcp`, status `pending-manual` until `/harness-mem-sourcegraph verify` has proved the
+connection.
 
 ## Step 4 — Wire the harness pieces
 1. Confirm the se-harness **agents roster** is active (ships with this plugin — architect,
@@ -95,22 +196,47 @@ For each selected component, by `kind`:
 2. Project-specific quality gates beyond the built-ins (gate-check, org-validate): point the
    user at the `hookify` plugin for authoring extra rules as hooks.
 3. **Graphify selected and installed this run**: offer to wire
-   `tools/harness/graphify-update-hook.sh` as a postToolUse hook for this repo (e.g. in
-   `.github/hooks/`). It only runs the cheap incremental `graphify update . --no-cluster`
-   after a commit, in the background, and no-ops instantly for any repo that didn't choose
-   Graphify — it's opt-in per repo, never bundled into the plugin's own global hooks.json.
+   `tools/harness/graphify-update-hook.sh` as a PostToolUse(Bash) hook for this
+   repo, the same way this surface registers its other project-level hooks. It only runs the
+   cheap incremental `graphify update . --no-cluster` after a commit, in the background, and
+   no-ops instantly for any repo that didn't choose Graphify — it's opt-in per repo
+   (ECC "composable" doctrine), never bundled into the plugin's own global hooks.json.
    Mention plainly that it can't cover the workspace-level merge (a hook only sees the repo its
    session is in) — `/harness-mem-graphify`'s own "Keeping this fresh automatically" section
    covers that gap and what to do about it.
 4. Re-render AGENTS.md blocks via
    `bash tools/harness/render-block.sh <target> <block-file>` so the generated
    block reflects what's now installed.
+   If it exits **3**, the generated block was hand-edited since the last render and was left
+   untouched (`<target>.seaa.proposed` holds the new version): show the user a diff of the two,
+   and ask keep-mine / take-new / merge. Only on take-new re-run with `--force` (the edited block
+   is saved to `<target>.seaa.bak`). Never pass `--force` without asking.
+
+## Step 4b — Conventions (only if selected in Step 2)
+Run the `/harness-conventions` flow directly, in this same run, for this repo (for a workspace,
+once per unit; docs for an internal library shared by several units are written once at the
+workspace root). It is interactive by design — it asks you to confirm rules — so tell the user
+up front that this part takes a few minutes. If they declined it, say it can be run any time and
+that `/harness-goal` will offer it again when a goal touches an area without a confirmed doc.
 
 ## Step 5 — Record in the lockfile
 Update `.harness/agentstack.lock`: for every component — name, source, version (if known),
-install method, status (`installed` / `pending-manual` / `declined`), date. Declined items are
-recorded too, so `/harness-sync` doesn't re-nag about them.
+install method, status (`installed` / `pending-manual` / `declined` / `deferred`), date. Declined items are
+recorded too, so `/harness-sync` doesn't re-nag about them; `deferred` means "not yet" and
+`/harness-sync` asks again. Decisions that aren't components (observability: none / not yet) live
+in `profile.yaml`'s `observability:` block — the lockfile alone can't carry them.
 
 ## Step 6 — Report
 Installed / pending-manual / declined table; exact manual commands for anything pending;
-next step: `/harness-goal <your first goal>`.
+then a **Next commands** list built from what happened, in this order, only the lines that apply:
+1. `/harness-mem-codebase-memory` or `/harness-mem-codegraph` — if that is the driver and the install,
+   registration or first index did not complete (declined, or a unit failed).
+   `/harness-mem-sourcegraph` — if the driver is Sourcegraph and the connection is not yet proved
+   (`pending-manual`); `coverage` there tells you which workspace repos the instance has indexed.
+   `/harness-mem-graphify` — if the structural driver is Graphify and the first index wasn't built
+   in Step 3 (declined, or a unit failed); for a workspace with no `repo_name`, also the merge.
+2. `/harness-mem-wiki [source]` — if non-code sources are configured and the wiki is empty
+   (name the sources; remind that credentials go in the workspace `.env.harness`).
+3. `/harness-conventions` — if skipped.
+4. `/harness-goal <your first goal>` — `/harness-goal` runs a preflight that re-checks 1-3 and
+   offers to fix any that are still missing.

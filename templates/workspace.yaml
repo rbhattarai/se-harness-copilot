@@ -51,11 +51,15 @@ workspace:
     # answer back here so every other unit inherits it too. A unit MAY deviate (e.g. a
     # different methodology) — that's a documented exception, recorded as a comment next to
     # the field in that unit's own .harness/profile.yaml, not a silent divergence.
-    methodology: ""          # bmad | spec-kit | openspec | se-harness — workspace-wide
+    methodology: ""          # se-harness | openspec | spec-kit | bmad — workspace-wide
                               # default. "se-harness" displays as "se-harness (built-in)" —
                               # only it and openspec are actually delegated to by /harness-goal
                               # today (see profile.yaml's comment).
-    org: {}                  # same shape as profile.yaml org: — conventions, internal libs
+    org: {}                  # same shape as profile.yaml org: — conventions, internal libs, guardrails.
+                             # convention_docs: written by /harness-conventions for docs that span units
+                             # (an internal library's catalog, org-wide rules). path is relative to THIS
+                             # file's directory; each unit's profile gets the same entry with scope:
+                             # workspace and a path rewritten relative to that unit.
     # package_index:            OPTIONAL, additive to org: — set only if this org requires
     #   url: ""                 installs (uv/pip) to come from a private index rather than
     #   allow_insecure_host: "" public PyPI. Read by /harness-mem-graphify when installing
@@ -65,7 +69,7 @@ workspace:
     jira_project: ""
     confluence_spaces: []    # e.g. ["ACME", "PLATFORM"]
     sharepoint_sites: []     # e.g. ["https://acme.sharepoint.com/sites/engineering"]
-    nas_doc_paths: []        # PDFs/Office docs; /harness-mem-wiki walks these recursively
+    nas_doc_paths: []        # any document format (pdf/docx/pptx/xlsx/md/txt/…); /harness-mem-wiki walks these recursively
     nas_video_paths: []      # transcribed via Graphify's video extra, then wiki-ingested
     memory:
       structural_driver: null  # phase 4, tier 1 ONLY — one of registry/recommendations.json's
@@ -73,6 +77,23 @@ workspace:
                                 # Tiers 2/3 (session log, domain wiki) are always plain markdown
                                 # regardless of this value — see docs/workspace-orchestration-plan.md §4.5/§8.
                                 # Set by /harness-init Step 6; actually installed by /harness-bootstrap.
+      codegraph:               # same shape as profile.yaml memory.codegraph (variant, telemetry) - choose once
+        variant: null
+        telemetry: null
+      codebase_memory:         # same shape as profile.yaml memory.codebase_memory
+        index_mode: full
+      sourcegraph:             # same shape as profile.yaml memory.sourcegraph - the instance is org-wide, set once
+        deployment: null       # cloud | self-hosted
+        url: ""
+        endpoint: "/.api/mcp"
+        auth: oauth            # oauth | token
+        token_env: SOURCEGRAPH_ACCESS_TOKEN
+        repo_scope: ""
+    observability:           # same shape as profile.yaml observability: - set once here, every unit inherits
+      status: unset          # unset | deferred | declined | configured (see profile.yaml)
+      provider: null         # langfuse | dash0 | other
+      host: ""               # non-secret endpoint, e.g. http://localhost:3000; keys live in the workspace-root .env.harness
+      decided: ""            # YYYY-MM-DD
 
   units:
     - name: example-service

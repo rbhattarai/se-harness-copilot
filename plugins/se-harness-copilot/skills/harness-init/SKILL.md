@@ -43,7 +43,7 @@ automatically. Check once, up front, instead of letting an arbitrary later step 
         (a) check their own `~/.vscode/agent-plugins/` for the install themselves (path layout
         above) and point you at it, or (b) `git clone <se-harness repo url> se-harness` right
         here as a sibling, then re-run this command — this also covers the
-        `templates/`/`registry/` references used later. Never guess at an install path.
+        `templates/` and `registry/` references used later (they live under `plugins/se-harness/` in that clone). Never guess at an install path.
 
 ## Step 1 — Detect the setup target (workspace-orchestration plan §4.1)
 Run `git rev-parse --is-inside-work-tree`.
@@ -200,10 +200,11 @@ and `shared.jira_project`/`shared.confluence_spaces`/`shared.sharepoint_sites`:
   reporting success.
 
 Ask only what wasn't detected and isn't already inherited. Cover:
-1. **Methodology** (workspace-scoped by default): **se-harness (built-in)** (this framework's
-   own grill → REQ → story → design → implement → gates loop, zero extra dependencies — the
-   safe default for anyone who doesn't need a named methodology) / **OpenSpec** (brownfield,
-   delta-based) / BMAD (roles/stakeholders, enterprise) / Spec Kit (greenfield, spec-first).
+1. **Methodology** (workspace-scoped by default) — four choices, in this order:
+   **se-harness (built-in)** (this framework's own SDLC: grill → REQ → story → architecture
+   doc → implement → gates loop, zero extra dependencies — the recommended default; record
+   `methodology: se-harness`) / **OpenSpec** (brownfield, delta-based) / **Spec Kit**
+   (greenfield, spec-first) / **BMAD** (roles/stakeholders, enterprise).
    Recommend based on project type; user decides. **Be honest about what's actually wired**:
    only se-harness (built-in) and OpenSpec change `/harness-goal`'s own behavior today — pick
    OpenSpec and step 3 of that loop runs `/opsx:propose` to seed the REQ, step 10 runs
@@ -231,7 +232,10 @@ Ask only what wasn't detected and isn't already inherited. Cover:
 `shared.org` in the workspace manifest already has `internal_libraries`/`preferred_libraries`/
 `conventions`, inherit them and tell the user what was inherited — skip asking about anything
 already covered. Ask only about what's missing, then offer to write new answers back into
-`shared.org` (confirm first) so later repos inherit them too.
+`shared.org` (confirm first) so later repos inherit them too. If `shared.org.convention_docs`
+lists workspace-scope convention docs, copy each into this repo's `org.convention_docs` with
+`scope: workspace` and the path rewritten relative to this repo (see `/harness-conventions`,
+"Workspace ↔ unit docs"); don't re-ask about them.
 
 Ask explicitly — for new projects this is the only source; for existing projects collect what
 the user knows now (Phase 2 `/harness-scan` will verify/extend it):
@@ -241,6 +245,25 @@ the user knows now (Phase 2 `/harness-scan` will verify/extend it):
 3. **Coding conventions/guidelines** — inline rules and/or a Confluence/SharePoint URL
    (the wiki-ingest skill will pull the URL's content into domain memory later).
 None of these are required — record empty lists if the org has none; don't nag.
+
+4. **Guardrails** (optional, off by default) — policy on what the agent should and shouldn't help
+   with. Read `templates/guardrails.preset.txt` (`id | label | rule` per line)
+   and ask in two steps: (a) AskUserQuestion, multiSelect, one option per preset line using its label
+   (the ones marked "(recommended)" first) plus **None — no guardrails**; (b) then ask whether to
+   **add rules of their own** (free text, one per line) or **reword** any selected rule. Write the final
+   rule texts to `org.guardrails`, one rule per line. The rule text carries deliberate carve-outs
+   (business-domain questions, authorized security work) — if the user rewrites a rule, don't
+   silently strengthen or weaken it. Never invent guardrails and never infer them from the code. Say
+   plainly that this is an instruction in AGENTS.md, not enforcement. In a workspace it is a
+   `shared.org` field: ask once, inherit silently in every unit; a unit may add its own lines.
+
+Whatever the answers, tell the user these three only seed the profile: the **detailed,
+per-area rules and the library catalog** (what to use for what, import paths, examples) are
+captured separately by `/harness-conventions`, which reads the code and the libraries' own
+sources. For an existing project that runs best after `/harness-scan`; if the user says they
+have existing instruction files (e.g. `copilot-instructions.md`), note that it will use them as
+input. Do not run it from here — init has not scanned the code yet. For the one-pass workspace
+paths (Step 1b / mono-repo loop), do not ask again per unit; the Step 8 report lists it once.
 
 ## Step 6 — Structural memory (tier 1 only — workspace-orchestration plan §4.5)
 
@@ -256,7 +279,9 @@ it silently, tell the user what was inherited, and skip the question below.
 
 Otherwise, ask once: offer the `memory.structural.choose_one` list from
 `registry/recommendations.json` (currently CodeGraph — two unrelated repos, disambiguate by
-URL, not name — codebase-memory-mcp, or Graphify), summarizing each option's tradeoff from the
+URL, not name — codebase-memory-mcp, Graphify, or **Sourcegraph**; each has its own
+`/harness-mem-*` command that bootstrap hands off to, so init only records the choice — and for CodeGraph, which
+project, as `memory.codegraph.variant`), summarizing each option's tradeoff from the
 registry's `note` field in a sentence or two, plus an explicit **defer** choice (valid; this is
 an open bake-off, not a requirement — don't nag about it later). Record the answer:
 - **Workspace exists** → write it to `shared.memory.structural_driver` in the workspace
@@ -265,6 +290,14 @@ an open bake-off, not a requirement — don't nag about it later). Record the an
   visibility.
 - **No workspace** (single repo) → write directly to this repo's `profile.yaml`
   (`memory.structural_driver`).
+
+**If Sourcegraph is chosen**, it is a remote service, not something to install, and its details are
+owned by **`/harness-mem-sourcegraph`**. Here, record only the driver (`sourcegraph`) and ask the
+instance questions it defines in its Step 1 (deployment, URL, endpoint, OAuth vs token — read that
+step and ask them once; in a workspace they go to `shared.memory.sourcegraph`, inherited by every
+unit). Leave the registration scope, the `.mcp.json` wiring, the connection check and the coverage
+report to `/harness-bootstrap` (which hands off to `/harness-mem-sourcegraph`). Say plainly: it needs
+an Enterprise plan with MCP enabled, and the repos must already be on that instance.
 
 A deferred choice is recorded as `null`, not skipped silently — `/harness-bootstrap` and
 `/harness-scan` both check this field before falling back to asking or probing generically.
@@ -275,11 +308,15 @@ the user isn't left wondering why nothing got indexed yet.
 ## Step 7 — Generate artifacts
 Order matters; use the exact mechanics below.
 
-1. **`.harness/profile.yaml`** — render from `../se-harness-copilot/templates/profile.yaml`
+1. **`.harness/profile.yaml`** — render from `templates/profile.yaml`
    with all interview answers. Never put secrets here.
 2. **`.env.harness`** — copy `templates/env.harness.example` **only if `.env.harness` doesn't
-   already exist**; leave existing files untouched. Tell the user which vars to fill for the
-   sources they named.
+   already exist**; leave existing files untouched. This repo-level file is for this repo's own
+   secrets only (cloud-provider creds matching its `cloud:` field, anything else repo-specific)
+   — it no longer carries Jira/Confluence/SharePoint/GitHub placeholders; those are org-wide,
+   not per-repo, and live in a **workspace-root** `.env.harness` instead
+   (`templates/env.harness.workspace.example`), which `/harness-mem-wiki` creates and reads, not
+   this command. Tell the user which repo-level vars to fill for what this repo actually needs.
 3. **`.gitignore`** — append each line of `templates/gitignore.harness` that isn't already
    present (grep before append; create `.gitignore` if missing).
 4. **Memory scaffold** (skip any file that already exists):
@@ -293,23 +330,34 @@ Order matters; use the exact mechanics below.
    ```
 5. **`.harness/org-rules.txt`** — one line per banned pair from the org answers:
    `banned:<never>:use <use> (<reason>)`. Empty file if none (the org-validate hook no-ops).
-6. **AGENTS.md** — render the *inner* content of `templates/AGENTS.md.tmpl` (fill every
-   `{{placeholder}}` from the profile; drop sections whose data is empty; **do not include the
-   marker lines** — the splice script owns them). Write the rendered block to a temp file, then:
+6. **AGENTS.md** — render the *inner* content of
+   `templates/AGENTS.md.tmpl` (fill every `{{placeholder}}` from
+   the profile; drop sections whose data is empty; **do not include the marker lines** — the
+   splice script owns them). Write the rendered block to a temp file, then:
    ```
    bash tools/harness/render-block.sh AGENTS.md <temp-agents-block>
    ```
-   This is the ONLY way to touch this file — never edit it directly, so hand-written
-   content outside the markers survives. (Copilot reads `AGENTS.md` natively, so no
-   separate instructions file is needed.)
-7. **`.harness/agentstack.lock`** — JSON: `se_harness` version (from plugin.json),
+   This is the ONLY way to touch this file — never edit them directly, so hand-written
+   content outside the markers survives. The script stamps `sha=<hash>` on the END marker so
+   later syncs can tell a hand-edited block from an untouched one. On a `--update` re-run, exit
+   code **3** means the block was hand-edited and left untouched (`<target>.seaa.proposed` holds
+   the new version): show a diff, ask keep-mine / take-new, and only on take-new re-run with
+   `--force` (edited block saved to `<target>.seaa.bak`). Never pass `--force` unasked.
+7. **`.harness/agentstack.lock`** — JSON: `schema_version: 1` (layout of `.harness/` data;
+   bumped only when a release needs a migration), `se_harness` version (from plugin.json —
+   the version that last wrote this project's generated content),
    `initialized`/`updated` ISO dates, `profile` echo of key choices (methodology, stack,
    cloud, topology, `memory.structural_driver`), `components: {}` (Phase 3 fills this).
 
 ## Step 8 — Report & next steps
 Summarize what was created vs. skipped (already existed). Then:
 - **Existing project** → "run `/harness-scan` to detect stack/devops/org conventions from the
-  code" (Phase 2 — if not yet available, say so and note the profile can be completed manually).
+  code, then `/harness-conventions` to write them up as per-area convention docs the agents follow" (Phase 2 — if not yet available, say so and note the profile can be completed manually).
+- **Memory**: if a structural driver was chosen in Step 6, bootstrap installs it and (for
+  Graphify) hands off to `/harness-mem-graphify` to build the first index. If Step 4 recorded
+  non-code sources (Jira/Confluence/SharePoint/NAS), nothing is ingested yet — `/harness-mem-wiki`
+  does that, separately, after bootstrap, because it needs credentials in the workspace
+  `.env.harness`. Say which of the two applies so the user knows what comes next.
 - Both → next: Phase 3 bootstrap (methodology + stack plugins + the structural-memory driver
   chosen in Step 6, if any), then `/harness-goal <goal>`.
 - Remind: fill `.env.harness`, commit `.harness/` + AGENTS.md, DON'T commit `.env.harness`.

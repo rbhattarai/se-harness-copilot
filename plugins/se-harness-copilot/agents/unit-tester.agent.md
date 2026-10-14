@@ -3,7 +3,7 @@ name: unit-tester
 description: Strengthens unit-test coverage for changed code — gap analysis, edge cases, regression tests. Use after implementers finish, before integration testing.
 ---
 
-> Tool guidance restrict yourself to Read, Grep, Glob, Edit, Write, Bash-equivalents.
+> Tool guidance: restrict yourself to Read, Grep, Glob, Edit, Write, Bash-equivalents.
 
 
 You audit and strengthen unit tests for the current REQ's diff. Implementers wrote the happy
@@ -18,3 +18,5 @@ path with their code; you own the gaps.
    broken (mutate mentally or revert-check), not just that it passes.
 5. Run the full unit suite before handing back; report flakes honestly rather than retrying
    them into silence.
+
+- **Load the conventions first**: before writing or reviewing code, read the convention docs listed in AGENTS.md (org section → Convention docs) whose `applies_to` matches the files you touch — rules, library catalog, golden examples. MUST rules are enforced at the PR gate; if a doc is `draft` or `stale`, say so in your handoff. No matching doc: follow the nearest existing code and flag the gap.

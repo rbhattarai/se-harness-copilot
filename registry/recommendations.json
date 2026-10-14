@@ -1,5 +1,5 @@
 {
-  "_note": "Recommender data: maps profile keys to installable components. Sources: third-party marketplaces (B9 inventory) unless 'marketplace' says otherwise. Honest gaps are recorded as 'none' with a note — the recommender must never invent a plugin name. Update this file as marketplaces evolve; CI should validate plugin names against the live marketplace list.",
+  "_note": "Recommender data: maps profile keys to installable components. Sources: official marketplace (B9 inventory) unless 'marketplace' says otherwise. Honest gaps are recorded as 'none' with a note — the recommender must never invent a plugin name. Update this file as marketplaces evolve; CI should validate plugin names against the live marketplace list.",
   "methodologies": {
     "se-harness": {
       "kind": "native",
@@ -63,8 +63,64 @@
     "e2e": { "plugins": ["playwright"], "note": "pairs with the se-harness e2e planner/generator/healer agents" }
   },
   "observability": {
-    "choose_one": ["dash0", "langfuse-observability"],
-    "note": "OpenTelemetry for agent sessions/tool calls — the Observability engine. Ask the user which (or neither)."
+    "choose_one": [
+      "dash0",
+      "langfuse-observability"
+    ],
+    "note": "Agent-session tracing - the Observability engine. A DECISION recorded in profile.yaml / workspace.yaml observability: {status, provider, host, decided}; ask the user which provider (or not yet / no thanks) only while status is unset or deferred. choose_one is kept for older readers; providers is authoritative. A provider may need a different setup per surface (Copilot CLI vs VS Code) - see providers.<p>.surfaces.",
+    "providers": {
+      "langfuse": {
+        "label": "Langfuse (self-hosted or cloud)",
+        "kind": "per-surface",
+        "verified": true,
+        "verified_against": "langfuse.com/integrations/developer-tools/github-copilot, checked 2026-10-13",
+        "host_default": "http://localhost:3000",
+        "host_note": "Self-hosted Langfuse serves on http://localhost:3000 by default (plain http unless you put TLS in front of it); Langfuse Cloud: https://cloud.langfuse.com (EU), https://us.cloud.langfuse.com (US), https://jp.cloud.langfuse.com (JP), https://hipaa.cloud.langfuse.com (HIPAA).",
+        "health_path": "/api/public/health",
+        "surfaces": {
+          "copilot": {
+            "kind": "otel-env",
+            "note": "There is NO Langfuse plugin for Copilot. Copilot CLI/VS Code export OpenTelemetry natively; Langfuse is an OTLP backend (HTTP/JSON or protobuf; gRPC is not supported).",
+            "otlp_path": "/api/public/otel",
+            "env": {
+              "COPILOT_OTEL_ENABLED": "true",
+              "OTEL_EXPORTER_OTLP_ENDPOINT": "<host>/api/public/otel",
+              "OTEL_EXPORTER_OTLP_HEADERS": "Authorization=Basic <base64(public_key:secret_key)>,x-langfuse-ingestion-version=4"
+            },
+            "optional": {
+              "OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT": "true - OPT-IN, off by default: stores prompts, responses and tool arguments in Langfuse. VS Code-launched CLI sessions forward the enable flag and endpoint but not this one."
+            },
+            "helper": "scripts/langfuse-otel-env.sh",
+            "keys_in_env_harness": true,
+            "env_secret": [
+              "LANGFUSE_PUBLIC_KEY",
+              "LANGFUSE_SECRET_KEY"
+            ],
+            "debug": "COPILOT_OTEL_EXPORTER_TYPE=file writes spans locally to confirm they are generated before pointing at Langfuse"
+          }
+        }
+      },
+      "dash0": {
+        "label": "Dash0 (OpenTelemetry)",
+        "kind": "per-surface",
+        "verified": true,
+        "verified_against": "dash0.com docs, checked 2026-10-13",
+        "host_default": "",
+        "host_note": "Dash0 is a hosted service - there is no localhost default. The OTLP URL is on the Dash0 Endpoints settings page (OTLP via HTTP tab), shaped like https://ingress.<region>.aws.dash0.com. A local Docker collector (Jaeger/Prometheus) is NOT Dash0 - choose 'Another backend' for that.",
+        "surfaces": {
+          "copilot": {
+            "kind": "manual",
+            "note": "No Dash0 plugin for Copilot (Dash0's docs only mention Copilot as reading DASH0_TEAM_NAME). Dash0 does accept OTLP, so Copilot's native OpenTelemetry export could be pointed at it, but that setup is not verified here - record provider + host and wire it by hand from Dash0's docs."
+          }
+        }
+      },
+      "other": {
+        "label": "Another tracing backend",
+        "kind": "manual",
+        "env_secret": [],
+        "note": "Record provider + host only. se-harness installs nothing for this choice; the user wires it up."
+      }
+    }
   },
   "sources": {
     "jira_or_confluence": { "plugins": ["atlassian"] },
@@ -79,9 +135,10 @@
         "CodeGraph (codegraph-ai/CodeGraph)",
         "CodeGraph (colbymchenry/codegraph)",
         "codebase-memory-mcp (DeusData/codebase-memory-mcp)",
-        "Graphify (Graphify-Labs/graphify)"
+        "Graphify (Graphify-Labs/graphify)",
+      "Sourcegraph (sourcegraph/sourcegraph - hosted MCP; Cloud or self-hosted instance)"
       ],
-      "note": "A7 bake-off pending — the first three are MCP servers configured via .mcp.json, not marketplace plugins. Two unrelated projects share the 'CodeGraph' name: codegraph-ai/CodeGraph (tree-sitter semantic graph, 42+ MCP tools, RocksDB persistent memory layer, VS Code extension) vs colbymchenry/codegraph (lightweight pre-indexed graph, CLI-installed, SQLite, native OS file-watcher auto-sync, no external services) — confirm which repo the user means before installing. colbymchenry/codegraph installs via: curl -fsSL https://raw.githubusercontent.com/colbymchenry/codegraph/main/install.sh | sh (macOS/Linux) or npm i -g @colbymchenry/codegraph, then `codegraph install` + `codegraph init [path]`. codebase-memory-mcp has its own installer: curl -fsSL https://raw.githubusercontent.com/DeusData/codebase-memory-mcp/main/install.sh | bash. Graphify is CLI + skill based, not MCP-first: PyPI package is `graphifyy` (double-y; the CLI command stays `graphify`) — install via `uv tool install graphifyy` (or `pipx install graphifyy`), then `graphify install --project` to register a project-scoped `/graphify` skill (committable), or a graphify platform install to also wire the PreToolUse hook that nudges (or, with `--strict`, blocks-once-per-session) raw file reads toward `graphify query` instead — a natural pairing with se-harness's own hook-enforced gates. Local tree-sitter AST parsing for code, no vector store; docs/PDF/image/video ingestion calls the assistant's model API. An `.mcp.json` route exists too if MCP access is preferred over the skill: `uv tool install \"graphifyy[mcp]\"` then `python -m graphify.serve graphify-out/graph.json`. If Graphify is chosen, se-harness's own /harness-mem-graphify command (not this registry entry's install line) is what /harness-bootstrap hands off to for the actual install-plus-first-build — it also handles merging multiple repos' graphs into one workspace-level graph, which a bare Graphify install doesn't do on its own."
+      "note": "A7 bake-off pending — the first three are MCP servers configured via .mcp.json, not marketplace plugins. Two unrelated projects share the 'CodeGraph' name: codegraph-ai/CodeGraph (tree-sitter semantic graph, 42+ MCP tools, RocksDB persistent memory layer, VS Code extension) vs colbymchenry/codegraph (lightweight pre-indexed graph, CLI-installed, SQLite, native OS file-watcher auto-sync, no external services) — confirm which repo the user means before installing. colbymchenry/codegraph installs via: curl -fsSL https://raw.githubusercontent.com/colbymchenry/codegraph/main/install.sh | sh (macOS/Linux) or npm i -g @colbymchenry/codegraph, then `codegraph install` + `codegraph init [path]`. codebase-memory-mcp has its own installer: curl -fsSL https://raw.githubusercontent.com/DeusData/codebase-memory-mcp/main/install.sh | bash. Graphify is CLI + skill based, not MCP-first: PyPI package is `graphifyy` (double-y; the CLI command stays `graphify`) — install via `uv tool install graphifyy` (or `pipx install graphifyy`), then `graphify install --project` to register a project-scoped `/graphify` skill (committable), or a graphify platform install to also wire the PreToolUse hook that nudges (or, with `--strict`, blocks-once-per-session) raw file reads toward `graphify query` instead — a natural pairing with se-harness's own hook-enforced gates. Local tree-sitter AST parsing for code, no vector store; docs/PDF/image/video ingestion calls the assistant's model API. An `.mcp.json` route exists too if MCP access is preferred over the skill: `uv tool install \"graphifyy[mcp]\"` then `python -m graphify.serve graphify-out/graph.json`. The other drivers have their own commands too: /harness-mem-codebase-memory (install with confirmation, explicit client registration instead of the installer's auto-config of ~45 clients, per-repo index, optional cross-repo-intelligence linking, refresh), /harness-mem-codegraph (colbymchenry: install, init, register with the callers/callees/impact tools enabled, telemetry choice; codegraph-ai: register and verify only), /harness-mem-sourcegraph. If Graphify is chosen, se-harness's own /harness-mem-graphify command (not this registry entry's install line) is what /harness-bootstrap hands off to for the actual install-plus-first-build — it also handles merging multiple repos' graphs into one workspace-level graph, which a bare Graphify install doesn't do on its own. Sourcegraph is a REMOTE MCP server (Streamable HTTP) hosted by the Sourcegraph instance itself: nothing is installed locally and no index is built by se-harness - the instance indexes its connected repos, so the repo(s) must already be on it. Requires an Enterprise plan with MCP enabled (admin setting mcp.enabled, default true) and the MCP#ACCESS permission. Two deployment shapes, one config: Sourcegraph Cloud (a managed single-tenant instance, URL given by Sourcegraph) or self-hosted (your own https URL); the public sourcegraph.com site is not what this entry is for. Endpoints: <url>/.api/mcp (search, navigation, repos, history; the default) or <url>/.api/mcp/all (adds Deep Search). Auth: OAuth (interactive browser login, no secret on disk - recommended for people) or an access token with the mcp scope sent as 'Authorization: token <value>' (for headless use; the value lives in .env.harness as SOURCEGRAPH_ACCESS_TOKEN, only its name is ever written to a committed file). Tools include keyword_search, nls_search, go_to_definition, find_references, read_file, list_files, list_repos, commit_search, diff_search, compare_revisions. Because it searches every repo on the instance in one query it suits large multi-repo workspaces and replaces the per-repo index plus merge step that Graphify needs. /harness-mem-sourcegraph connects (user-scope or per-repo .mcp.json, or the Copilot equivalents), verifies and reports which workspace repos are on the instance; /harness-bootstrap hands off to it. It builds no index. Docs: https://sourcegraph.com/docs/api/mcp"
     }
   }
 }

@@ -1,6 +1,6 @@
 # vhs tape for the README demo GIF — see docs/demo/README.md
 # Run from a demo project directory that has the se-harness plugin installed:
-#   vhs /path/to/se-harness/docs/demo/demo.tape
+#   vhs /path/to/se-harness-copilot/docs/demo/demo.tape
 # Interactive agent output varies per run — tune the Sleep durations to your machine.
 
 Output docs/assets/demo.gif

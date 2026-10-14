@@ -79,10 +79,9 @@ Never install or run Graphify for a unit that didn't choose it:
 6. Verify `graphify --version` before processing any unit.
 7. For each unit missing its own project-level Graphify skill, run `graphify install --project`
    (let it auto-detect the ecosystem) — or, if auto-detection picks wrong, the explicit flag for
-   Copilot (check `graphify install --help` for current flag names rather than guessing — a
-   live trial found a bare `windows` platform value wires a different assistant, not VS Code
-   Copilot, so don't assume the obvious-looking name is
-   right). Keep any existing skill files; never overwrite a unit's own customizations.
+   this session's surface (Copilot CLI vs VS Code; check `graphify install --help`
+   for current flag names rather than guessing — don't assume the obvious-looking platform name
+   wires Copilot). Keep any existing skill files; never overwrite a unit's own customizations.
 8. Record a successful install in that unit's `.harness/agentstack.lock` (`components`): name
    `graphify`, source `Graphify-Labs/graphify (PyPI: graphifyy)`, installed version, install
    method, today's date, status `installed`. Never flip a prior `declined` status without the

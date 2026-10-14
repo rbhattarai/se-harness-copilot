@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# copilot-hook-adapter.sh — run an exit-code-style se-harness hook script under GitHub Copilot
+# copilot-hook-adapter.sh — run a se-harness hook script under GitHub Copilot
 # hooks (.github/hooks/*.json), translating the semantics that differ:
 #
-#   Script contract: exit 2 = block (PreToolUse) / surface feedback (PostToolUse), stderr → agent
+#   Hook scripts:  exit 2 = block (PreToolUse) / surface feedback (PostToolUse), stderr → agent
 #   Copilot:       preToolUse deny = JSON {"hookSpecificOutput":{"permissionDecision":"deny",...}}
 #                  + exit 0;  exit 2 does NOT block;  other non-zero exits fail-closed (deny);
 #                  timeouts fail-open.   (docs.github.com/en/copilot/reference/hooks-reference)
