@@ -65,6 +65,10 @@ combined integration check before the usual gates will let anything ship.
   `langfuse-otel-env.sh` builds the variables from `.env.harness`. Secrets never go in the profile.
 - **Repo-level export** — `harness-export` vendors agents and hooks into `.github/` for the
   Copilot coding agent on github.com.
+- **Regression-tested prompts, not just scripts** — [`evals/`](./evals/README.md) holds 194
+  deterministic offline cases (gates, hooks, scaffolding, plus self-checks of the eval machinery)
+  and model-backed evals of the agents, skills and the full goal loop. Local and manual by design;
+  the model-backed layers (2–3) are wired for the Copilot CLI but not yet run against a live session.
 - **No telemetry from the harness itself** — the one exception is yours to opt into: if you
   choose an observability backend, your own OpenTelemetry export sends traces there. Declining
   or deferring sends nothing. See [PRIVACY.md](./PRIVACY.md).
@@ -149,6 +153,7 @@ registry/recommendations.json        # profile → plugin mappings (recommender 
 templates/                           # profile/env/requirement/AGENTS/mcp/workspace/hooks + memory seeds, conventions
 docs/                                # setup guide, surface matrix, platform notes, demo guide
 tests/run-tests.sh                   # test suite run in CI
+evals/                              # regression evals: Layer 1 offline, Layers 2-3 model-backed
 ```
 
 ## Contributing

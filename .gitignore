@@ -42,3 +42,8 @@ playwright-report/
 # OS cruft
 .DS_Store
 Thumbs.db
+
+# evals: generated
+evals/results/
+evals/fixtures/.cache/
+__pycache__/
