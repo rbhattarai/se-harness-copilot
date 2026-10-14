@@ -4,8 +4,8 @@
 project — new or existing, any stack, from a single repo to a multi-repo product. AI agents
 do the work; hooks make sure they can't ship without you.**
 
-[![license](https://img.shields.io/github/license/rohanbhattaraidev-beep/se-harness-copilot?label=license&color=97ca00)](./LICENSE)
-[![CI](https://img.shields.io/github/actions/workflow/status/rohanbhattaraidev-beep/se-harness-copilot/ci.yml?branch=main&label=CI)](https://github.com/rohanbhattaraidev-beep/se-harness-copilot/actions/workflows/ci.yml)
+[![license](https://img.shields.io/github/license/rbhattarai/se-harness-copilot?label=license&color=97ca00)](./LICENSE)
+[![CI](https://img.shields.io/github/actions/workflow/status/rbhattarai/se-harness-copilot/ci.yml?branch=main&label=CI)](https://github.com/rbhattarai/se-harness-copilot/actions/workflows/ci.yml)
 [![Copilot CLI](https://img.shields.io/badge/Copilot_CLI-se--harness--copilot-8957e5?logo=githubcopilot&logoColor=white)](./docs/setup-guide-copilot.md)
 [![agents](https://img.shields.io/badge/SDLC_agents-12-6f42c1)](./plugins/se-harness-copilot/agents)
 [![HITL gates](https://img.shields.io/badge/HITL_gates-3_hook--enforced-blue)](./plugins/se-harness-copilot/hooks.json)
@@ -41,23 +41,43 @@ combined integration check before the usual gates will let anything ship.
   db-engineer, unit + integration testers, e2e planner/generator/healer, release-manager, and
   a workspace-orchestrator for multi-component requirements.
 - **3-tier memory** — committed project profile, append-only daily/topic logs with typed
-  causal links, and a provenance-tracked domain wiki (ingest/query/lint skills).
+  causal links, and a provenance-tracked domain wiki (ingest/query/lint skills). Tier 1
+  (structural/code-graph) is an opt-in driver choice — Graphify, CodeGraph,
+  codebase-memory-mcp, or Sourcegraph — each with its own `harness-mem-*` command.
+  `harness-mem-wiki` synthesizes Jira/Confluence/SharePoint/NAS documents and video into the
+  workspace-level wiki (synthesis only, never a raw copy).
+- **Conventions the agents actually follow** — `harness-conventions` turns "how we write code
+  here" (per-area rules, internal-library usage) into scoped convention docs the agents load
+  before writing code; re-runnable, flags stale docs.
+- **Methodology-aware** — built-in se-harness loop or OpenSpec (`harness-methodology-openspec`);
+  the choice is recorded in the profile and `harness-goal` drives it.
 - **Multi-repo aware** — declare products in `workspace.yaml` with a contracts registry;
   `contract-check.sh` blocks pushes that change a provided contract and names the consumer
   repos that would break. See
   [`docs/workspace-orchestration-plan.md`](./docs/workspace-orchestration-plan.md).
 - **Drift-aware sync** — `harness-sync` detects drift on four axes (profile, recommendations,
   templates, memory health), shows the diff first, and refreshes only generated blocks.
+- **Upgrade-safe** — `harness-update` pulls the new plugin version (marketplace first, GitHub
+  fallback) and migrates your project's `.harness/` data with one backup, whole-run rollback and
+  chained schema migrations; hand-edited generated blocks are proposed, never overwritten.
+- **Observability as a recorded decision** — `unset`, `deferred`, `declined` or `configured`
+  (Langfuse or Dash0) in the profile. On Copilot, Langfuse uses native OpenTelemetry export;
+  `langfuse-otel-env.sh` builds the variables from `.env.harness`. Secrets never go in the profile.
 - **Repo-level export** — `harness-export` vendors agents and hooks into `.github/` for the
   Copilot coding agent on github.com.
-- **No telemetry, ever** — see [PRIVACY.md](./PRIVACY.md).
+- **No telemetry from the harness itself** — the one exception is yours to opt into: if you
+  choose an observability backend, your own OpenTelemetry export sends traces there. Declining
+  or deferring sends nothing. See [PRIVACY.md](./PRIVACY.md).
 
 ## Install
 
 ```bash
-copilot plugin marketplace add rohanbhattaraidev-beep/se-harness-copilot
+copilot plugin marketplace add rbhattarai/se-harness-copilot
 copilot plugin install se-harness-copilot@se-harness-copilot
 ```
+
+**Update later:** `copilot harness-update` updates the plugin, then migrates this project's
+`.harness/` data; safe to re-run around the restart it needs.
 
 **Plugin installs restricted in your org?** The [setup guide](./docs/setup-guide-copilot.md)
 (§1.2–1.3) covers internal GitHub Enterprise import and offline zip → local-path
@@ -94,10 +114,15 @@ two-app loan product with a ready-made `workspace.yaml`; walkthrough in
 | `harness-bootstrap` | Recommends companion plugins/CLIs/MCP servers from your profile; opt-in install + lockfile |
 | `harness-goal` | The goal loop: supervisor over the agent roster, 3 hook-enforced approval gates |
 | `harness-sync` | Four-axis drift detection → diff-first report → confirmed refresh of generated blocks |
+| `harness-update` | Update the plugin, then migrate this project's `.harness/` data (backup + rollback) |
+| `harness-conventions` | Capture coding conventions and internal-library usage as per-area docs the agents load |
 | `harness-export` | Vendor agents + hooks into `.github/` for the coding agent |
 | `harness-methodology-openspec` | Install/init OpenSpec where chosen; `harness-goal` drives its propose/archive lifecycle |
 | `harness-mem-wiki` | Synthesize Jira/Confluence/SharePoint/NAS sources into the workspace-level domain wiki |
 | `harness-mem-graphify` | Build/maintain Graphify structural-memory indexes — per-repo, and merged at workspace level |
+| `harness-mem-codegraph` | Install, index and refresh the CodeGraph driver (confirms install and telemetry first) |
+| `harness-mem-codebase-memory` | Install, index and refresh the codebase-memory driver |
+| `harness-mem-sourcegraph` | Wire up Sourcegraph as the structural-memory driver |
 
 ## Documentation
 
@@ -116,11 +141,12 @@ plugins/se-harness-copilot/          # the plugin (source of truth)
   plugin.json  hooks.json
   agents/                            # 12-agent SDLC roster (*.agent.md)
   skills/                            # harness skills + each harness-* command as a skill
-  commands/                          # the nine harness-* commands
+  commands/                          # the fourteen harness-* commands
   scripts/                           # gate-check, org-validate, memory-log, contract-check,
-                                     # copilot-hook-adapter, workspace-*, render-block, ...
+                                     # copilot-hook-adapter, workspace-*, render-block,
+                                     # migrate (+ migrations/), doc-extract, decision-review, ...
 registry/recommendations.json        # profile → plugin mappings (recommender data)
-templates/                           # profile/env/requirement/AGENTS/mcp/workspace/hooks + memory seeds
+templates/                           # profile/env/requirement/AGENTS/mcp/workspace/hooks + memory seeds, conventions
 docs/                                # setup guide, surface matrix, platform notes, demo guide
 tests/run-tests.sh                   # test suite run in CI
 ```

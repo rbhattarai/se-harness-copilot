@@ -38,4 +38,4 @@ history is publicly visible.
 ## Contact
 
 Questions: Rohan Bhattarai — rohan.bhattarai.dev@gmail.com, or open an issue at
-https://github.com/rohanbhattaraidev-beep/se-harness-copilot/issues
+https://github.com/rbhattarai/se-harness-copilot/issues

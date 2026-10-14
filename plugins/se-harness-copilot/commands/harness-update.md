@@ -38,14 +38,14 @@ user's behalf — every one of those is an explicit confirmation from them.
    the clone via `copilot plugin marketplace list` / `copilot plugin list`).
 3. **If the marketplace step fails** (offline, auth, marketplace not added, clone broken): fall
    back to GitHub. Fetch with WebFetch
-   `https://raw.githubusercontent.com/rohanbhattaraidev-beep/se-harness-copilot/main/plugins/se-harness-copilot/plugin.json`
+   `https://raw.githubusercontent.com/rbhattarai/se-harness-copilot/main/plugins/se-harness-copilot/plugin.json`
    (the repo is `repository` in this plugin's `plugin.json`; use it if it differs) and read
    `version`. If that fails too, say both sources were unreachable, name each error, and stop —
    do not guess.
 4. Compare with the running version (semver). Report one line:
    `installed X · newest Y (via marketplace|github) · project stamp S / schema N`.
    For a major bump, point at the release notes
-   (`https://github.com/rohanbhattaraidev-beep/se-harness-copilot/releases`) before going on.
+   (`https://github.com/rbhattarai/se-harness-copilot/releases`) before going on.
 
 (Plugin scripts make no network calls — `PRIVACY.md` — so every lookup above goes through the
 `copilot` CLI or WebFetch, here in the command, never inside `scripts/`.)
@@ -56,7 +56,7 @@ With `--check`: skip this step and Step 4; report only.
 1. Confirm with the user (AskUserQuestion): update `se-harness-copilot` X → Y (source found in Step 0)?
 2. If the newest version was found **only via GitHub** (the marketplace step failed), the
    marketplace clone is stale and the plugin update would see no change. Tell the user to
-   repair it first — `copilot plugin marketplace add rohanbhattaraidev-beep/se-harness-copilot` (re-adds/refreshes),
+   repair it first — `copilot plugin marketplace add rbhattarai/se-harness-copilot` (re-adds/refreshes),
    or the marketplace update once connectivity is back — and re-run this command.
    Do not copy files out of a GitHub clone into the plugin cache by hand.
 3. Otherwise run `copilot plugin update se-harness-copilot` (or reinstall with

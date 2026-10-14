@@ -92,7 +92,7 @@ If your machine can reach public GitHub and plugin installs aren't restricted, t
 two-liner in Copilot CLI:
 
 ```bash
-copilot plugin marketplace add rohanbhattaraidev-beep/se-harness-copilot
+copilot plugin marketplace add rbhattarai/se-harness-copilot
 copilot plugin install se-harness-copilot@se-harness
 ```
 
@@ -104,7 +104,7 @@ Verify: `copilot plugin list` shows `se-harness-copilot`, and a new session can 
 Do **not** hand-copy an unreviewed zip from the public internet into firm infrastructure.
 Follow your firm's third-party/OSS intake process:
 
-1. The framework lives at public GitHub as `rohanbhattaraidev-beep/se-harness-copilot`
+1. The framework lives at public GitHub as `rbhattarai/se-harness-copilot`
    (it contains no company or product data — verify by reading it; it's small).
 2. Request your platform/security team to **import it into GitHub Enterprise as an internal
    repo**, e.g. `yourorg/se-harness-copilot` (GitHub's "Import repository", or fork if your enterprise
@@ -540,7 +540,7 @@ Every Copilot CLI ships with two marketplaces pre-registered: **`github/copilot-
 their repo** adding an entry to their `marketplace.json` that points at yours:
 ```json
 { "name": "se-harness-copilot",
-  "source": { "source": "github", "repo": "rohanbhattaraidev-beep/se-harness-copilot", "path": "plugins/se-harness-copilot" } }
+  "source": { "source": "github", "repo": "rbhattarai/se-harness-copilot", "path": "plugins/se-harness-copilot" } }
 ```
 Read the target repo's CONTRIBUTING.md first — each has its own review/quality bar. Once
 merged, users install with zero setup: `copilot plugin install se-harness-copilot`.

@@ -61,7 +61,7 @@ followed by a `vX.Y.Z` tag and a GitHub release.
 
 ## Reporting bugs and proposing features
 
-Open a [GitHub issue](https://github.com/rohanbhattaraidev-beep/se-harness-copilot/issues)
+Open a [GitHub issue](https://github.com/rbhattarai/se-harness-copilot/issues)
 with reproduction steps (for bugs: OS, Copilot CLI version, and the
 command or hook involved). For larger features — new agents,
 changes to the goal-loop gates — please open an issue to discuss before investing in
